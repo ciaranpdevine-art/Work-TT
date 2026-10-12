@@ -76,10 +76,10 @@ button.danger{color:var(--danger)}
 .big .v{font-family:var(--f-mono);font-size:2.2rem;line-height:1.1;font-variant-numeric:tabular-nums;font-weight:500}
 .big .v.money{color:var(--ok)}
 .big .s{font-size:.8rem;color:var(--muted)}
-.ladder{position:relative;padding-top:22px;padding-bottom:4px}
+.ladder{position:relative;padding-top:22px;padding-bottom:4px;margin-top:6px}
 .ladder .track{position:relative;height:16px;background:var(--bg);border:1px solid var(--line);border-radius:4px}
 .ladder .fill{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:3px}
-.ladder .tick{position:absolute;top:-22px;bottom:-4px;width:0;border-left:1px dashed var(--muted)}
+.ladder .tick{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed var(--muted)}
 .ladder .tick span{position:absolute;top:0;transform:translateX(-50%);font-family:var(--f-mono);font-size:.7rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 .ladder .tick.hit{border-left-color:var(--ok)}
 .ladder .tick.hit span{color:var(--ok);font-weight:600}
@@ -187,7 +187,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
 
   <section class="panel" aria-labelledby="qTitle" data-pane="bonus">
     <div class="phead">
-      <h2 id="qTitle">Quarter bonus</h2>
+      <h2 id="qTitle">Target to date</h2>
       <span class="pill neutral" id="qPill">Calculating…</span>
     </div>
     <div class="headline">
@@ -207,6 +207,30 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
       </table>
     </div>
     <p class="note" id="bNote"></p>
+  </section>
+
+  <section class="panel" aria-labelledby="fqTitle" data-pane="bonus">
+    <div class="phead">
+      <h2 id="fqTitle">Full quarter</h2>
+      <span class="pill neutral" id="fqPill">Calculating…</span>
+    </div>
+    <div class="headline">
+      <div class="big"><span class="k">Quarter target</span><span class="v" id="fqTarget">0h</span><span class="s" id="fqTargetSub"></span></div>
+      <div class="big"><span class="k">Logged so far</span><span class="v" id="fqLogged">0h</span><span class="s" id="fqLoggedSub"></span></div>
+      <div class="big"><span class="k">Projected bonus</span><span class="v money" id="fqBonus">—</span><span class="s" id="fqBonusSub"></span></div>
+    </div>
+    <div class="ladder" aria-hidden="true">
+      <div class="track"><div class="fill" id="fqFill" style="width:0"></div><div class="pace" id="fqMark" hidden></div></div>
+      <div id="fqTicks"></div>
+    </div>
+    <div class="ladderlbl"><span id="fqRange"></span><span>Black line = projected finish at your current rate</span></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Tier</th><th>Bonus</th><th>Quarter hours</th><th>Still to log</th><th>Per day from today</th></tr></thead>
+        <tbody id="fqRows"></tbody>
+      </table>
+    </div>
+    <p class="note" id="fqNote"></p>
   </section>
 
   <section class="panel" aria-labelledby="calTitle" data-pane="calendar" hidden>
@@ -349,6 +373,28 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     const pct = available ? logged/available : 0;
     return { start, end, upTo, available, days: days_, achieved: logged, holDays, closedCount, pct };
   }
+  // Full quarter: target over every working day, and what the rest of the quarter needs
+  function fullQuarterStats(){
+    const { start, end } = quarterBounds(), t = todayIso(), closed = closedSet(), days = byDate();
+    let target=0, totalDays=0, capPast=0, loggedPast=0, capLeft=0, daysLeft=0, holLeft=0;
+    for(let s=start; s<=end; s=addDays(s,1)){
+      const k = kind(s, closed);
+      if(k==="weekend" || k==="closed") continue;
+      target += DAY; totalDays++;
+      const cap = (DAY - credit(s, closed))/DAY; // working days you'll actually be in (holidays = 0, half = 0.5)
+      if(s < t){ capPast += cap; loggedPast += sumMins(days[s]||[]); }
+      else { capLeft += cap; daysLeft++; if(cap<1) holLeft += 1-cap; }
+    }
+    const logged = sumMins(state.entries.filter(e=>e.date>=start && e.date<=end));
+    const loggedFromToday = logged - loggedPast;
+    let projected = null;
+    if(capPast > 0){
+      const rate = loggedPast / capPast; // average minutes per day you've worked so far
+      const todayCap = (t>=start && t<=end && kind(t,closed)!=="weekend" && kind(t,closed)!=="closed") ? (DAY - credit(t,closed))/DAY : 0;
+      projected = loggedPast + Math.max(loggedFromToday, rate*todayCap) + rate*Math.max(0, capLeft - todayCap);
+    }
+    return { start, end, target, totalDays, logged, capLeft, daysLeft, holLeft, projected, rate: capPast ? loggedPast/capPast : null };
+  }
   const tierFor = p => { let t=null; TIERS.forEach(x=>{ if(p>=x.p-1e-9) t=x; }); return t; };
 
   function renderBonus(){
@@ -381,7 +427,57 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     const bits = [];
     if(q.closedCount) bits.push(q.closedCount+" office-closed day"+(q.closedCount===1?"":"s")+" left out");
     if(q.holDays) bits.push(q.holDays+" holiday day"+(q.holDays===1?"":"s")+" included with no hours");
+    renderFullQuarter();
     $("bNote").textContent = "Target so far = "+HOURS_PER_DAY+"h × each working day from "+fmtShort(q.start)+" to today, including today. It grows by "+HOURS_PER_DAY+"h each working day. "+(bits.length? bits.join(" · ")+".":"");
+  }
+
+  function renderFullQuarter(){
+    const f = fullQuarterStats();
+    const pct = f.target ? f.logged/f.target : 0;
+    const projPct = f.projected!==null && f.target ? f.projected/f.target : null;
+    const projTier = projPct!==null ? tierFor(projPct) : null;
+    $("fqTarget").textContent = fmtMins(f.target);
+    $("fqTargetSub").textContent = f.totalDays+" working days × "+HOURS_PER_DAY+"h";
+    $("fqLogged").textContent = fmtMins(f.logged);
+    $("fqLoggedSub").textContent = pctTxt(pct)+" of the quarter target";
+    if(projPct===null){
+      $("fqBonus").textContent = "—"; $("fqBonusSub").textContent = "Shows once a working day before today has passed";
+    } else {
+      $("fqBonus").textContent = projTier ? gbp(projTier.b) : "£0";
+      $("fqBonusSub").textContent = "finishing near "+pctTxt(projPct)+" ("+fmtMins(f.projected)+")";
+    }
+    const pill = $("fqPill");
+    const nextQ = TIERS.find(x=>pct < x.p-1e-9);
+    if(!nextQ){ pill.className="pill ok"; pill.textContent="Top tier locked in"; }
+    else {
+      const perDay = f.capLeft ? (nextQ.p*f.target - f.logged)/f.capLeft : Infinity;
+      const target = projTier && TIERS.indexOf(projTier) < TIERS.length-1 ? TIERS[TIERS.indexOf(projTier)+1] : (projTier ? null : TIERS[0]);
+      if(target){
+        const pd = f.capLeft ? (target.p*f.target - f.logged)/f.capLeft : Infinity;
+        pill.className = pd<=DAY ? "pill neutral" : "pill behind";
+        pill.textContent = pd===Infinity ? "Quarter finished" : fmtMins(Math.ceil(pd))+"/day for "+gbp(target.b);
+      } else { pill.className="pill ok"; pill.textContent="On course for top tier"; }
+    }
+    $("fqFill").style.width = Math.min(100, pct*100)+"%";
+    const mk = $("fqMark");
+    if(projPct!==null){ mk.hidden=false; mk.style.left = Math.min(100, projPct*100)+"%"; } else mk.hidden = true;
+    $("fqTicks").innerHTML = TIERS.map(x=>`<div class="tick ${pct>=x.p-1e-9?"hit":""}" style="left:${x.p*100}%"><span>${Math.round(x.p*100)}%</span></div>`).join("");
+    $("fqRange").textContent = fmtShort(f.start)+" – "+fmtShort(f.end)+" · "+f.daysLeft+" working day"+(f.daysLeft===1?"":"s")+" left incl. today";
+    $("fqRows").innerHTML = TIERS.map(x=>{
+      const hours = x.p*f.target, need = Math.max(0, hours - f.logged), hit = need<=0;
+      const perDay = f.capLeft ? need/f.capLeft : Infinity;
+      const onPace = projTier===x;
+      let pd;
+      if(hit) pd = `<span class="st">Reached</span>`;
+      else if(perDay===Infinity) pd = `<span class="st" style="color:var(--danger)">Out of time</span>`;
+      else pd = fmtMins(Math.ceil(perDay)) + (perDay>DAY ? ` <span class="st" style="color:var(--danger)">over ${HOURS_PER_DAY}h</span>` : "");
+      return `<tr class="${hit?"hit":""} ${onPace?"next":""}"><td>${Math.round(x.p*100)}%</td><td>${gbp(x.b)}</td><td>${fmtMins(hours)}</td><td>${hit?"—":fmtMins(Math.ceil(need))}</td><td>${pd}</td></tr>`;
+    }).join("");
+    const bits = ["Quarter target = "+HOURS_PER_DAY+"h × every working day in the quarter (holidays included, office-closed days left out)."];
+    bits.push("“Per day from today” spreads what's left over the days you'll actually be working"+(f.holLeft?", with "+f.holLeft+" upcoming holiday day"+(f.holLeft===1?"":"s")+" taken out":"")+".");
+    if(f.rate!==null) bits.push("Projection assumes you keep averaging "+fmtMins(f.rate)+" per working day.");
+    bits.push("Highlighted row = the tier you're on course for.");
+    $("fqNote").textContent = bits.join(" ");
   }
 
   // ---- calendar ----
