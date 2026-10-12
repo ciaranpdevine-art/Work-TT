@@ -202,7 +202,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     <div class="ladderlbl"><span id="qRange"></span><span>Measured against working days up to today</span></div>
     <div class="tablewrap">
       <table>
-        <thead><tr><th>Tier</th><th>Bonus</th><th>Hours by today</th><th>Still to log</th></tr></thead>
+        <thead><tr><th>Tier</th><th>Bonus</th><th>Hrs</th><th>To log</th></tr></thead>
         <tbody id="tierRows"></tbody>
       </table>
     </div>
@@ -226,7 +226,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     <div class="ladderlbl"><span id="fqRange"></span><span>Black line = projected finish at your current rate</span></div>
     <div class="tablewrap">
       <table>
-        <thead><tr><th>Tier</th><th>Bonus</th><th>Quarter hours</th><th>Still to log</th><th>Per day from today</th></tr></thead>
+        <thead><tr><th>Tier</th><th>Bonus</th><th>Hrs</th><th>To log</th><th>Per day</th></tr></thead>
         <tbody id="fqRows"></tbody>
       </table>
     </div>
@@ -269,8 +269,8 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
       <label class="c4">Description
         <input id="fDesc" autocomplete="off" placeholder="What you worked on">
       </label>
-      <label class="c2">Time taken
-        <input id="fTime" class="mono" autocomplete="off" required placeholder="1h 30m or 1.5">
+      <label class="c2">Time taken (hrs)
+        <input id="fTime" class="mono" autocomplete="off" required placeholder="e.g. 0.75 or 1.5" inputmode="decimal">
       </label>
       <label class="c2">On X-Suite
         <span class="toggle"><input type="checkbox" id="fXsuite"> Logged on X-Suite</span>
@@ -349,10 +349,12 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     if((m = s.match(/^(\d+(?:\.\d+)?)$/))) return Math.round(parseFloat(m[1])*60);
     return null;
   }
-  function fmtMins(n){ const neg=n<0; n=Math.round(Math.abs(n||0)); const h=Math.floor(n/60), m=n%60; const t = !h ? m+"m" : (m? h+"h "+m+"m" : h+"h"); return (neg?"−":"")+t; }
-  const decHours = n => (Math.round((n||0)/60*100)/100).toFixed(2);
+  // Time is charged in 15-minute blocks: always round UP to the next quarter hour, shown as decimal hours
+  const q15 = m => Math.ceil(Math.round(m||0)/15)*15;
+  function fmtMins(n){ const neg=n<0; const h=q15(Math.abs(n||0))/60; return (neg?"−":"")+String(+h.toFixed(2))+"h"; }
+  const decHours = n => String(+(q15(n)/60).toFixed(2));
   const esc = s => String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const sumMins = arr => arr.reduce((s,e)=>s+(e.minutes||0),0);
+  const sumMins = arr => arr.reduce((s,e)=>s+q15(e.minutes),0);
   const byDate = () => { const m={}; state.entries.forEach(e=>{ (m[e.date] ||= []).push(e); }); return m; };
   const pctTxt = p => (Math.floor(p*1000)/10).toFixed(1).replace(/\.0$/,"")+"%";
 
@@ -474,7 +476,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
       return `<tr class="${hit?"hit":""} ${onPace?"next":""}"><td>${Math.round(x.p*100)}%</td><td>${gbp(x.b)}</td><td>${fmtMins(hours)}</td><td>${hit?"—":fmtMins(Math.ceil(need))}</td><td>${pd}</td></tr>`;
     }).join("");
     const bits = ["Quarter target = "+HOURS_PER_DAY+"h × every working day in the quarter (holidays included, office-closed days left out)."];
-    bits.push("“Per day from today” spreads what's left over the days you'll actually be working"+(f.holLeft?", with "+f.holLeft+" upcoming holiday day"+(f.holLeft===1?"":"s")+" taken out":"")+".");
+    bits.push("“Per day” spreads what's left over the days you'll actually be working"+(f.holLeft?", with "+f.holLeft+" upcoming holiday day"+(f.holLeft===1?"":"s")+" taken out":"")+".");
     if(f.rate!==null) bits.push("Projection assumes you keep averaging "+fmtMins(f.rate)+" per working day.");
     bits.push("Highlighted row = the tier you're on course for.");
     $("fqNote").textContent = bits.join(" ");
@@ -569,7 +571,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   function renderLedger(){
     const rows = visible(), total = sumMins(rows), pend = rows.filter(e=>!e.onXsuite);
     $("ledgerSum").textContent = rows.length ? `${fmtMins(total)} across ${rows.length} entr${rows.length===1?"y":"ies"} · ${fmtMins(sumMins(pend))} not yet on X-Suite` : "";
-    const by = {}; rows.forEach(e=>{ by[e.company]=(by[e.company]||0)+(e.minutes||0); });
+    const by = {}; rows.forEach(e=>{ by[e.company]=(by[e.company]||0)+q15(e.minutes); });
     const list = Object.entries(by).sort((a,b)=>b[1]-a[1]), max = list.length ? list[0][1] : 1;
     $("bars").innerHTML = list.map(([c,m])=>`<div class="bar"><span class="n" title="${esc(c)}">${esc(c)}</span><span class="t"><i style="width:${Math.max(2,m/max*100)}%"></i></span><span class="h">${fmtMins(m)}</span></div>`).join("");
     $("exportBtn").hidden = !(downloads && rows.length);
@@ -612,9 +614,9 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   $("fDate").value = todayIso();
   $("entryForm").addEventListener("submit", async ev=>{
     ev.preventDefault();
-    const company=$("fCompany").value.trim(), ticket=$("fTicket").value.trim(), date=$("fDate").value, minutes=parseTime($("fTime").value);
+    const company=$("fCompany").value.trim(), ticket=$("fTicket").value.trim(), date=$("fDate").value, rawMins=parseTime($("fTime").value), minutes=rawMins>0 ? q15(rawMins) : null;
     if(!company || !ticket || !date){ $("formErr").textContent="Add a company, ticket number and date."; return; }
-    if(!minutes || minutes<=0){ $("formErr").textContent="Enter time like 45m, 1h 30m, 1:30 or 1.5."; return; }
+    if(!minutes || minutes<=0){ $("formErr").textContent="Enter time in hours, like 0.25, 0.75 or 1.5."; return; }
     if(!col){ $("formErr").textContent="Saving isn't available here. Open the page while signed in to claude.ai."; return; }
     const data = { company, ticket, description:$("fDesc").value.trim(), date, minutes, onXsuite:$("fXsuite").checked };
     $("saveBtn").disabled=true;
@@ -677,7 +679,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
       const e=state.entries.find(x=>x.id===b.dataset.edit); if(!e) return;
       state.editing=e.id;
       $("fCompany").value=e.company; $("fTicket").value=e.ticket; $("fDesc").value=e.description||"";
-      $("fDate").value=e.date; $("fTime").value=fmtMins(e.minutes); $("fXsuite").checked=!!e.onXsuite;
+      $("fDate").value=e.date; $("fTime").value=decHours(e.minutes); $("fXsuite").checked=!!e.onXsuite;
       $("formTitle").textContent="Edit entry"; $("saveBtn").textContent="Save changes"; $("cancelEdit").hidden=false;
       state.returnTab = state.tab; showTab("log"); $("fTime").focus({preventScroll:true});
     } else if(b.dataset.del){ state.confirmDel=b.dataset.del; renderDay(); renderLedger(); }
@@ -704,8 +706,8 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   $("exportBtn").addEventListener("click", async ()=>{
     if(!downloads) return;
     const q = v => '"'+String(v??"").replace(/"/g,'""')+'"';
-    const lines=[["Company","Ticket Number","Description","Date","Time Taken","Hours","On X-Suite"].map(q).join(",")]
-      .concat(visible().map(e=>[e.company,e.ticket,e.description,e.date,fmtMins(e.minutes),decHours(e.minutes),e.onXsuite?"Yes":"No"].map(q).join(",")));
+    const lines=[["Company","Ticket Number","Description","Date","Hours","On X-Suite"].map(q).join(",")]
+      .concat(visible().map(e=>[e.company,e.ticket,e.description,e.date,decHours(e.minutes),e.onXsuite?"Yes":"No"].map(q).join(",")));
     saveFile("time-entries-"+todayIso()+".csv", lines.join("\n"), "text/csv");
   });
 
