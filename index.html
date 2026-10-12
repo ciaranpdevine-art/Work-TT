@@ -12,7 +12,7 @@
 :root{
   --bg:#f3f5f4; --surface:#ffffff; --ink:#18211f; --muted:#5c6966; --line:#dbe1df;
   --accent:#0f6e66; --accent-ink:#ffffff; --accent-soft:#e1efed;
-  --warn:#9a5b00; --warn-soft:#fbefd9; --ok:#1d6b3a; --ok-soft:#e2f2e7; --danger:#a3312a; --danger-soft:#f8e3e1;
+  --warn:#9a5b00; --warn-soft:#fbefd9; --ok:#1d6b3a; --ok-mid:#62b47c; --ok-soft:#e2f2e7; --danger:#a3312a; --danger-soft:#f8e3e1;
   --hol:#5a4fa8; --hol-soft:#ebe8f8;
   --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -21,12 +21,12 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#111816; --surface:#18211f; --ink:#e6ecea; --muted:#94a3a0; --line:#2a3633;
   --accent:#4fb8ad; --accent-ink:#0b1513; --accent-soft:#183331;
-  --warn:#f0b04f; --warn-soft:#3a2b12; --ok:#6fcf8f; --ok-soft:#163222; --danger:#ef7d74; --danger-soft:#3a1a18;
+  --warn:#f0b04f; --warn-soft:#3a2b12; --ok:#6fcf8f; --ok-mid:#3b8a57; --ok-soft:#163222; --danger:#ef7d74; --danger-soft:#3a1a18;
   --hol:#b4aaf0; --hol-soft:#26223f; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#111816; --surface:#18211f; --ink:#e6ecea; --muted:#94a3a0; --line:#2a3633;
   --accent:#4fb8ad; --accent-ink:#0b1513; --accent-soft:#183331;
-  --warn:#f0b04f; --warn-soft:#3a2b12; --ok:#6fcf8f; --ok-soft:#163222; --danger:#ef7d74; --danger-soft:#3a1a18;
+  --warn:#f0b04f; --warn-soft:#3a2b12; --ok:#6fcf8f; --ok-mid:#3b8a57; --ok-soft:#163222; --danger:#ef7d74; --danger-soft:#3a1a18;
   --hol:#b4aaf0; --hol-soft:#26223f; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
@@ -115,11 +115,12 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
 .cell.sel{box-shadow:0 0 0 2px var(--ink) inset}
 .cell.met .meter i.w{background:var(--ok)}
 .cell.part .meter i.w{background:var(--warn)}
+.cell.halfmet .meter i.w{background:var(--ok-mid)}
 .cell.miss .hrs{color:var(--danger)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--warn);flex:none}
 .tag{font-family:var(--f-body);font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .cell.holiday .tag{color:var(--hol)}
-@media (max-width:520px){.cell{min-height:58px;padding:4px}.cell.today{padding:3px}.cell .hrs{font-size:.72rem}.cal{gap:3px}.tag{font-size:.58rem}}
+@media (max-width:520px){.cell{min-height:58px;padding:4px}.cell.today{padding:3px}.cell .hrs{font-size:.64rem;letter-spacing:-.03em;text-overflow:clip}.cal{gap:3px}.tag{font-size:.58rem}}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.78rem;color:var(--muted);align-items:center}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .sw{width:14px;height:4px;border-radius:2px;display:inline-block}
@@ -246,7 +247,8 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     <div class="cal" id="cal"></div>
     <div class="legend">
       <span><i class="sw" style="background:var(--ok)"></i>7.5h or more</span>
-      <span><i class="sw" style="background:var(--warn)"></i>Under 7.5h</span>
+      <span><i class="sw" style="background:var(--ok-mid)"></i>3.75h or more</span>
+      <span><i class="sw" style="background:var(--warn)"></i>Under 3.75h</span>
       <span><i class="sw" style="background:var(--hol)"></i>Holiday (still in target)</span>
       <span><i class="dot"></i>Not all on X-Suite</span>
       <span>Striped = office closed</span>
@@ -498,9 +500,10 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
       if(k==="closed") cls.push("closed");
       if(k==="holiday"||k==="half") cls.push("holiday");
       if(s===t) cls.push("today"); if(s===state.sel) cls.push("sel");
-      if(k!=="weekend" && k!=="closed"){
-        if(total>=DAY) cls.push("met"); else if(logged>0) cls.push("part"); else if(s<t && k==="work") cls.push("miss");
-      } else if(logged>0) cls.push(logged>=DAY?"met":"part");
+      // Bar colour: amber under half a day, light green from half a day (3.75h), full green at a full day (7.5h)
+      const quota = (k==="weekend"||k==="closed") ? DAY : (DAY - c);
+      const band = logged<=0 ? "" : logged>=quota ? "met" : logged>=quota/2 ? "halfmet" : logged>0 ? "part" : "";
+      if(band) cls.push(band); else if(k==="work" && s<t) cls.push("miss");
       const pending = items.some(e=>!e.onXsuite);
       let hrs = "";
       if(k==="holiday") hrs = `<span class="tag">Holiday</span>`;
