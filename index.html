@@ -234,8 +234,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     <form id="entryForm" class="form" novalidate>
       <h2 id="formTitle" class="c6">Log time</h2>
       <label class="c2">Company
-        <input id="fCompany" list="companyList" autocomplete="off" required placeholder="e.g. Northwind">
-        <datalist id="companyList"></datalist>
+        <input id="fCompany" autocomplete="off" required placeholder="e.g. Northwind">
       </label>
       <label class="c2">Ticket number
         <input id="fTicket" class="mono" autocomplete="off" required placeholder="e.g. INC-20431">
@@ -467,7 +466,6 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   }
   function renderCompanies(){
     const cos = [...new Set(state.entries.map(e=>e.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-    $("companyList").innerHTML = cos.map(c=>`<option value="${esc(c)}">`).join("");
     if(!cos.includes(state.company)) state.company = "";
     $("filterCompany").innerHTML = `<option value="">All companies</option>` + cos.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
     $("filterCompany").value = state.company;
@@ -512,7 +510,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   function resetForm(keep){
     const company=$("fCompany").value, date=$("fDate").value;
     $("entryForm").reset();
-    if(keep){ $("fCompany").value=company; $("fDate").value=date; } else $("fDate").value = state.sel || todayIso();
+    if(keep){ $("fDate").value=date; } else $("fDate").value = state.sel || todayIso();
     state.editing=null; $("formTitle").textContent="Log time"; $("saveBtn").textContent="Add entry"; $("cancelEdit").hidden=true; $("formErr").textContent="";
   }
   $("fDate").value = todayIso();
