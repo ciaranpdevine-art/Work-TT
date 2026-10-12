@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Ticket Time Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one working column — bonus ladder for the quarter, Mon–Sun calendar with selected-day panel, log form, then the filterable ledger */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --ink:#18211f; --muted:#5c6966; --line:#dbe1df;
+  --accent:#0f6e66; --accent-ink:#ffffff; --accent-soft:#e1efed;
+  --warn:#9a5b00; --warn-soft:#fbefd9; --ok:#1d6b3a; --ok-soft:#e2f2e7; --danger:#a3312a; --danger-soft:#f8e3e1;
+  --hol:#5a4fa8; --hol-soft:#ebe8f8;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111816; --surface:#18211f; --ink:#e6ecea; --muted:#94a3a0; --line:#2a3633;
+  --accent:#4fb8ad; --accent-ink:#0b1513; --accent-soft:#183331;
+  --warn:#f0b04f; --warn-soft:#3a2b12; --ok:#6fcf8f; --ok-soft:#163222; --danger:#ef7d74; --danger-soft:#3a1a18;
+  --hol:#b4aaf0; --hol-soft:#26223f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111816; --surface:#18211f; --ink:#e6ecea; --muted:#94a3a0; --line:#2a3633;
+  --accent:#4fb8ad; --accent-ink:#0b1513; --accent-soft:#183331;
+  --warn:#f0b04f; --warn-soft:#3a2b12; --ok:#6fcf8f; --ok-soft:#163222; --danger:#ef7d74; --danger-soft:#3a1a18;
+  --hol:#b4aaf0; --hol-soft:#26223f; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}
+h1{font-family:var(--f-display);font-weight:600;font-size:1.75rem;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:.875rem}
+h2{font-family:var(--f-display);font-weight:600;font-size:1.05rem;margin:0;text-transform:uppercase;letter-spacing:.06em}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:14px;min-width:0}
+.phead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+label{display:grid;gap:4px;font-size:.75rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);min-width:0}
+input,select{font:inherit;font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0;text-transform:none;letter-spacing:0;font-weight:400}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.form{display:grid;gap:12px;grid-template-columns:repeat(6,minmax(0,1fr))}
+.c2{grid-column:span 2}.c4{grid-column:span 4}.c6{grid-column:span 6}
+@media (max-width:640px){.form{grid-template-columns:repeat(2,minmax(0,1fr))}.c2{grid-column:span 1}.c4,.c6{grid-column:span 2}}
+.mono{font-family:var(--f-mono)}
+.toggle{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-weight:500;font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;cursor:pointer;min-height:40px}
+.toggle input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+button{font:inherit;font-weight:600;font-size:.9rem;border-radius:6px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button:disabled{opacity:.6;cursor:default}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:6px 8px}
+button.ghost:hover{color:var(--ink);background:var(--bg)}
+button.small{padding:6px 10px;font-size:.82rem}
+button.danger{color:var(--danger)}
+.err{color:var(--danger);font-size:.85rem;margin:0}
+.muted{color:var(--muted)}
+
+/* tabs */
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:-6px}
+.tabs button{border:0;background:transparent;color:var(--muted);font-weight:600;font-size:.9rem;padding:9px 6px;border-radius:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs button:hover{color:var(--ink);background:var(--bg)}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+@media (max-width:420px){.tabs button{font-size:.8rem;padding:9px 2px}}
+
+/* bonus */
+.pill{font-size:.78rem;font-weight:600;border-radius:999px;padding:4px 12px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.behind{background:var(--danger-soft);color:var(--danger)}
+.pill.neutral{background:var(--accent-soft);color:var(--ink)}
+.pill.hol{background:var(--hol-soft);color:var(--hol)}
+.headline{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-end}
+.big{display:grid;gap:0}
+.big .k{font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.big .v{font-family:var(--f-mono);font-size:2.2rem;line-height:1.1;font-variant-numeric:tabular-nums;font-weight:500}
+.big .v.money{color:var(--ok)}
+.big .s{font-size:.8rem;color:var(--muted)}
+.ladder{position:relative;padding-top:22px;padding-bottom:4px}
+.ladder .track{position:relative;height:16px;background:var(--bg);border:1px solid var(--line);border-radius:4px}
+.ladder .fill{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:3px}
+.ladder .tick{position:absolute;top:-22px;bottom:-4px;width:0;border-left:1px dashed var(--muted)}
+.ladder .tick span{position:absolute;top:0;transform:translateX(-50%);font-family:var(--f-mono);font-size:.7rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ladder .tick.hit{border-left-color:var(--ok)}
+.ladder .tick.hit span{color:var(--ok);font-weight:600}
+.ladder .pace{position:absolute;top:-3px;bottom:-3px;width:3px;margin-left:-1px;background:var(--ink);border-radius:2px}
+.ladderlbl{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);gap:8px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+th{font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right;padding:6px 8px;border-bottom:2px solid var(--ink);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--f-mono);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+tr.hit td{color:var(--ok)}
+tr.next td{background:var(--accent-soft)}
+td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
+.note{font-size:.8rem;color:var(--muted);margin:0}
+
+/* calendar */
+.calnav{display:flex;gap:6px;align-items:center}
+.calnav b{font-family:var(--f-display);font-size:1.1rem;font-weight:600;min-width:9.5rem;text-align:center}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.dow{font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;padding-bottom:2px}
+.cell{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-rows:auto 1fr auto;gap:2px;min-height:76px;padding:6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);min-width:0}
+.cell:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.cell .dn{font-family:var(--f-mono);font-size:.8rem;font-variant-numeric:tabular-nums;display:flex;justify-content:space-between;align-items:center;gap:2px}
+.cell .hrs{font-family:var(--f-mono);font-size:.82rem;font-weight:500;font-variant-numeric:tabular-nums;align-self:end;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cell .meter{height:4px;border-radius:2px;background:var(--bg);overflow:hidden;display:flex}
+.cell .meter i{display:block;height:100%}
+.cell .meter i.h{background:var(--hol)}
+.cell.out{opacity:.4}
+.cell.wkend{background:var(--bg)}
+.cell.closed{background:repeating-linear-gradient(135deg,var(--bg) 0 6px,var(--surface) 6px 12px)}
+.cell.holiday{background:var(--hol-soft)}
+.cell.today{border-color:var(--accent);border-width:2px;padding:5px}
+.cell.sel{box-shadow:0 0 0 2px var(--ink) inset}
+.cell.met .meter i.w{background:var(--ok)}
+.cell.part .meter i.w{background:var(--warn)}
+.cell.miss .hrs{color:var(--danger)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--warn);flex:none}
+.tag{font-family:var(--f-body);font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.cell.holiday .tag{color:var(--hol)}
+@media (max-width:520px){.cell{min-height:58px;padding:4px}.cell.today{padding:3px}.cell .hrs{font-size:.72rem}.cal{gap:3px}.tag{font-size:.58rem}}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.78rem;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:4px;border-radius:2px;display:inline-block}
+
+/* selected day */
+.dayview{border-top:1px solid var(--line);padding-top:14px;display:grid;gap:10px}
+.dayview .dh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.dayview .dh b{font-family:var(--f-display);font-size:1.15rem;font-weight:600}
+.dayrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* ledger */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;border-radius:0;padding:7px 12px;background:transparent;color:var(--muted);font-weight:500;font-size:.85rem}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.filters select,.filters input{width:auto;flex:1 1 150px;background:var(--surface);padding:7px 10px}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(0,9rem) 1fr 4.5rem;gap:10px;align-items:center;font-size:.85rem}
+.bar .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .t{height:10px;background:var(--bg);border-radius:3px;overflow:hidden}
+.bar .t i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.bar .h{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;padding:14px 4px 6px;border-bottom:2px solid var(--ink)}
+.dayhead b{font-family:var(--f-display);font-weight:600;font-size:1rem}
+.dayhead span{font-family:var(--f-mono);font-size:.85rem;font-variant-numeric:tabular-nums}
+.row{display:grid;grid-template-columns:minmax(0,8rem) minmax(0,6.5rem) minmax(0,1fr) 4.5rem auto auto;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line)}
+.row .co{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .tk{font-family:var(--f-mono);font-size:.85rem;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .ds{min-width:0;overflow-wrap:anywhere}
+.row .tm{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.row .ops{display:flex;gap:2px}
+.chip{font-size:.75rem;font-weight:600;border-radius:999px;padding:3px 10px;border:1px solid transparent;white-space:nowrap}
+.chip.yes{background:var(--ok-soft);color:var(--ok)}
+.chip.no{background:var(--warn-soft);color:var(--warn)}
+@media (max-width:640px){
+  .row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"co tm" "tk xs" "ds ds" "ops ops";gap:4px 10px}
+  .row .co{grid-area:co}.row .tm{grid-area:tm}.row .tk{grid-area:tk}.row .chip{grid-area:xs;justify-self:end}.row .ds{grid-area:ds}.row .ops{grid-area:ops;justify-content:flex-end}
+}
+.empty{text-align:center;padding:24px 16px;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-family:var(--f-display);font-size:1.05rem;margin-bottom:4px}
+.listhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.status{font-size:.8rem;color:var(--muted)}
+.confirm{display:flex;gap:6px;align-items:center;font-size:.85rem}
+@media (prefers-reduced-motion:no-preference){.bar .t i,.ladder .fill{transition:width .3s ease}}
+</style>
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Ticket Time Tracker</h1>
+      <div class="sub" id="today"></div>
+    </div>
+    <div class="status" id="status">Connecting…</div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" data-tab="bonus" aria-selected="true">Bonus</button>
+    <button type="button" role="tab" data-tab="calendar" aria-selected="false">Calendar</button>
+    <button type="button" role="tab" data-tab="log" aria-selected="false">Log time</button>
+    <button type="button" role="tab" data-tab="entries" aria-selected="false">Entries</button>
+  </nav>
+
+  <section class="panel" aria-labelledby="qTitle" data-pane="bonus">
+    <div class="phead">
+      <h2 id="qTitle">Quarter bonus</h2>
+      <span class="pill neutral" id="qPill">Calculating…</span>
+    </div>
+    <div class="headline">
+      <div class="big"><span class="k">Achieved</span><span class="v" id="bPct">0%</span><span class="s" id="bPctSub"></span></div>
+      <div class="big"><span class="k">Bonus earned so far</span><span class="v money" id="bNow">£0</span><span class="s" id="bNowSub"></span></div>
+      <div class="big"><span class="k">Target so far</span><span class="v" id="bPace">0h</span><span class="s" id="bPaceSub"></span></div>
+    </div>
+    <div class="ladder" aria-hidden="true">
+      <div class="track"><div class="fill" id="bFill" style="width:0"></div></div>
+      <div id="bTicks"></div>
+    </div>
+    <div class="ladderlbl"><span id="qRange"></span><span>Measured against working days up to today</span></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Tier</th><th>Bonus</th><th>Hours by today</th><th>Still to log</th></tr></thead>
+        <tbody id="tierRows"></tbody>
+      </table>
+    </div>
+    <p class="note" id="bNote"></p>
+  </section>
+
+  <section class="panel" aria-labelledby="calTitle" data-pane="calendar" hidden>
+    <div class="phead">
+      <h2 id="calTitle">Calendar</h2>
+      <div class="calnav">
+        <button type="button" class="small" id="calPrev" aria-label="Previous month">‹</button>
+        <b id="calMonth"></b>
+        <button type="button" class="small" id="calNext" aria-label="Next month">›</button>
+        <button type="button" class="small" id="calToday">Today</button>
+      </div>
+    </div>
+    <div class="cal" id="cal"></div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--ok)"></i>7.5h or more</span>
+      <span><i class="sw" style="background:var(--warn)"></i>Under 7.5h</span>
+      <span><i class="sw" style="background:var(--hol)"></i>Holiday (still in target)</span>
+      <span><i class="dot"></i>Not all on X-Suite</span>
+      <span>Striped = office closed</span>
+    </div>
+    <div class="dayview" id="dayview"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="formTitle" data-pane="log" hidden>
+    <form id="entryForm" class="form" novalidate>
+      <h2 id="formTitle" class="c6">Log time</h2>
+      <label class="c2">Company
+        <input id="fCompany" list="companyList" autocomplete="off" required placeholder="e.g. Northwind">
+        <datalist id="companyList"></datalist>
+      </label>
+      <label class="c2">Ticket number
+        <input id="fTicket" class="mono" autocomplete="off" required placeholder="e.g. INC-20431">
+      </label>
+      <label class="c2">Date
+        <input id="fDate" type="date" required>
+      </label>
+      <label class="c4">Description
+        <input id="fDesc" autocomplete="off" placeholder="What you worked on">
+      </label>
+      <label class="c2">Time taken
+        <input id="fTime" class="mono" autocomplete="off" required placeholder="1h 30m or 1.5">
+      </label>
+      <label class="c2">On X-Suite
+        <span class="toggle"><input type="checkbox" id="fXsuite"> Logged on X-Suite</span>
+      </label>
+      <div class="c4 actions" style="justify-content:flex-end">
+        <p class="err" id="formErr" role="alert" style="margin-right:auto"></p>
+        <button type="button" id="cancelEdit" hidden>Cancel</button>
+        <button type="submit" class="primary" id="saveBtn">Add entry</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel" aria-labelledby="ledgerTitle" data-pane="entries" hidden>
+    <div class="listhead">
+      <h2 id="ledgerTitle">All entries</h2>
+      <div class="dayrow"><button type="button" class="small" id="exportBtn" hidden>Export CSV</button><button type="button" class="small" id="backupBtn">Back up</button><button type="button" class="small" id="restoreBtn">Restore</button><input type="file" id="restoreFile" accept=".json,application/json" hidden></div>
+    </div>
+    <div class="filters" aria-label="Filters">
+      <div class="seg" role="group" aria-label="Period" id="periodSeg">
+        <button type="button" data-period="week" aria-pressed="false">Week</button>
+        <button type="button" data-period="month" aria-pressed="false">Month</button>
+        <button type="button" data-period="quarter" aria-pressed="true">Quarter</button>
+        <button type="button" data-period="all" aria-pressed="false">All</button>
+      </div>
+      <select id="filterCompany" aria-label="Company"><option value="">All companies</option></select>
+      <select id="filterX" aria-label="X-Suite status">
+        <option value="">Any X-Suite status</option>
+        <option value="no">Not on X-Suite</option>
+        <option value="yes">On X-Suite</option>
+      </select>
+      <input id="search" type="search" placeholder="Search ticket or description" aria-label="Search">
+    </div>
+    <p class="err" id="restoreMsg" role="status"></p>
+    <div class="muted" id="ledgerSum" style="font-size:.85rem"></div>
+    <div class="bars" id="bars"></div>
+    <div id="ledger"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const HOURS_PER_DAY = 7.5, DAY = HOURS_PER_DAY*60;
+  const TIERS = [{p:.5,b:2000},{p:.6,b:2500},{p:.7,b:3000},{p:.8,b:3500},{p:.9,b:4000}];
+  // UK (England & Wales) bank holidays, pre-marked as office closed; change any day from the calendar
+  const DEFAULT_CLOSED = ["2026-12-25","2026-12-28","2027-01-01","2027-03-26","2027-03-29","2027-05-03","2027-05-31","2027-08-30","2027-12-27","2027-12-28"];
+  const $ = id => document.getElementById(id);
+  const gbp = n => "£"+n.toLocaleString("en-GB");
+  const state = { entries: [], closed: null, holidays: {}, period: "quarter", company: "", x: "", q: "", editing: null, confirmDel: null, sel: null, calY: 0, calM: 0 };
+  let col = null, settingsRef = null, downloads = null;
+
+  // ---- dates ----
+  const pad = n => String(n).padStart(2,"0");
+  const iso = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  const parse = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+  const todayIso = () => iso(new Date());
+  const addDays = (s,n) => { const d=parse(s); d.setDate(d.getDate()+n); return iso(d); };
+  function weekStart(){ const d=new Date(); d.setDate(d.getDate()-(d.getDay()+6)%7); return iso(d); }
+  function monthStart(){ const d=new Date(); return iso(new Date(d.getFullYear(), d.getMonth(), 1)); }
+  function quarterBounds(){ const d=new Date(); const qm=Math.floor(d.getMonth()/3)*3; return { start: iso(new Date(d.getFullYear(),qm,1)), end: iso(new Date(d.getFullYear(),qm+3,0)) }; }
+  const fmtDay = s => parse(s).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"short",year:"numeric"});
+  const fmtShort = s => parse(s).toLocaleDateString(undefined,{day:"numeric",month:"short"});
+  const isWeekend = s => { const g=parse(s).getDay(); return g===0||g===6; };
+  const closedSet = () => new Set(state.closed || DEFAULT_CLOSED);
+  // day kind: weekend | closed | holiday | half | work
+  function kind(s, closed){ if(isWeekend(s)) return "weekend"; if(closed.has(s)) return "closed"; const h=state.holidays[s]; if(h>=DAY) return "holiday"; if(h>0) return "half"; return "work"; }
+  const credit = (s, closed) => { const k=kind(s,closed); return k==="holiday"||k==="half" ? state.holidays[s] : 0; };
+  $("today").textContent = new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+
+  // ---- time ----
+  function parseTime(str){
+    const s = String(str||"").trim().toLowerCase().replace(/\s+/g," ");
+    if(!s) return null; let m;
+    if((m = s.match(/^(\d+):(\d{1,2})$/))) return (+m[1])*60 + (+m[2]);
+    if((m = s.match(/^(\d+(?:\.\d+)?)\s*h(?:rs?|ours?)?(?:\s*(\d+)\s*m(?:ins?|inutes?)?)?$/))) return Math.round(parseFloat(m[1])*60 + (m[2]?+m[2]:0));
+    if((m = s.match(/^(\d+)\s*m(?:ins?|inutes?)?$/))) return +m[1];
+    if((m = s.match(/^(\d+(?:\.\d+)?)$/))) return Math.round(parseFloat(m[1])*60);
+    return null;
+  }
+  function fmtMins(n){ const neg=n<0; n=Math.round(Math.abs(n||0)); const h=Math.floor(n/60), m=n%60; const t = !h ? m+"m" : (m? h+"h "+m+"m" : h+"h"); return (neg?"−":"")+t; }
+  const decHours = n => (Math.round((n||0)/60*100)/100).toFixed(2);
+  const esc = s => String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const sumMins = arr => arr.reduce((s,e)=>s+(e.minutes||0),0);
+  const byDate = () => { const m={}; state.entries.forEach(e=>{ (m[e.date] ||= []).push(e); }); return m; };
+  const pctTxt = p => (Math.floor(p*1000)/10).toFixed(1).replace(/\.0$/,"")+"%";
+
+  // ---- bonus maths ----
+  function quarterStats(){
+    const { start, end } = quarterBounds(), t = todayIso(), closed = closedSet(), days = byDate();
+    // Target runs from the quarter start up to and including today (or the quarter end, once it's over)
+    const upTo = t < end ? t : end;
+    let available=0, days_=0, closedCount=0, holDays=0;
+    for(let s=start; s<=upTo; s=addDays(s,1)){
+      const k = kind(s, closed);
+      if(k==="weekend") continue;
+      if(k==="closed"){ closedCount++; continue; }
+      available += DAY; days_++;
+      const c = credit(s, closed); if(c) holDays += c/DAY; // holidays stay in the target but add no hours
+    }
+    const logged = sumMins(state.entries.filter(e=>e.date>=start && e.date<=upTo));
+    const pct = available ? logged/available : 0;
+    return { start, end, upTo, available, days: days_, achieved: logged, holDays, closedCount, pct };
+  }
+  const tierFor = p => { let t=null; TIERS.forEach(x=>{ if(p>=x.p-1e-9) t=x; }); return t; };
+
+  function renderBonus(){
+    const q = quarterStats();
+    const cur = tierFor(q.pct), next = TIERS.find(x=>q.pct < x.p-1e-9);
+    $("bPct").textContent = pctTxt(q.pct);
+    $("bPctSub").textContent = fmtMins(q.achieved)+" logged of "+fmtMins(q.available);
+    $("bNow").textContent = cur ? gbp(cur.b) : "£0";
+    $("bNowSub").textContent = cur ? (Math.round(cur.p*100))+"% tier reached" : "Bonus starts at 50%";
+    $("bPace").textContent = fmtMins(q.available);
+    $("bPaceSub").textContent = q.days+" working day"+(q.days===1?"":"s")+" × "+HOURS_PER_DAY+"h";
+
+    const pill=$("qPill");
+    if(!q.available){ pill.className="pill neutral"; pill.textContent="No working days yet"; }
+    else if(cur && !next){ pill.className="pill ok"; pill.textContent="Top tier reached"; }
+    else if(next){
+      pill.className = cur ? "pill neutral" : "pill behind";
+      pill.textContent = fmtMins(Math.ceil(next.p*q.available - q.achieved))+" to "+gbp(next.b);
+    }
+
+    $("bFill").style.width = Math.min(100, q.pct*100)+"%";
+    $("bTicks").innerHTML = TIERS.map(x=>`<div class="tick ${q.pct>=x.p-1e-9?"hit":""}" style="left:${x.p*100}%"><span>${Math.round(x.p*100)}%</span></div>`).join("");
+    $("qRange").textContent = fmtShort(q.start)+" – "+fmtShort(q.upTo)+" of quarter ending "+fmtShort(q.end);
+
+    $("tierRows").innerHTML = TIERS.map(x=>{
+      const target = x.p*q.available, need = Math.max(0, target - q.achieved);
+      const hit = q.available>0 && need<=0, isNext = next===x;
+      return `<tr class="${hit?"hit":""} ${isNext?"next":""}"><td>${Math.round(x.p*100)}%</td><td>${gbp(x.b)}</td><td>${fmtMins(target)}</td><td>${hit?`<span class="st">Reached</span>`:fmtMins(Math.ceil(need))}</td></tr>`;
+    }).join("");
+    const bits = [];
+    if(q.closedCount) bits.push(q.closedCount+" office-closed day"+(q.closedCount===1?"":"s")+" left out");
+    if(q.holDays) bits.push(q.holDays+" holiday day"+(q.holDays===1?"":"s")+" included with no hours");
+    $("bNote").textContent = "Target so far = "+HOURS_PER_DAY+"h × each working day from "+fmtShort(q.start)+" to today, including today. It grows by "+HOURS_PER_DAY+"h each working day. "+(bits.length? bits.join(" · ")+".":"");
+  }
+
+  // ---- calendar ----
+  function renderCal(){
+    const y=state.calY, m=state.calM, first=new Date(y,m,1), t=todayIso(), closed=closedSet(), days=byDate();
+    $("calMonth").textContent = first.toLocaleDateString(undefined,{month:"long",year:"numeric"});
+    const startD = new Date(y,m,1-((first.getDay()+6)%7));
+    const lastD = new Date(y,m+1,0);
+    const endD = new Date(lastD); endD.setDate(lastD.getDate()+(6-((lastD.getDay()+6)%7)));
+    let html = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=>`<div class="dow">${d}</div>`).join("");
+    for(let d=new Date(startD); d<=endD; d.setDate(d.getDate()+1)){
+      const s=iso(d), items=days[s]||[], logged=sumMins(items), k=kind(s,closed), c=credit(s,closed), total=logged+c; // total vs DAY = this day's own work quota met
+      const cls=["cell"];
+      if(d.getMonth()!==m) cls.push("out");
+      if(k==="weekend") cls.push("wkend");
+      if(k==="closed") cls.push("closed");
+      if(k==="holiday"||k==="half") cls.push("holiday");
+      if(s===t) cls.push("today"); if(s===state.sel) cls.push("sel");
+      if(k!=="weekend" && k!=="closed"){
+        if(total>=DAY) cls.push("met"); else if(logged>0) cls.push("part"); else if(s<t && k==="work") cls.push("miss");
+      } else if(logged>0) cls.push(logged>=DAY?"met":"part");
+      const pending = items.some(e=>!e.onXsuite);
+      let hrs = "";
+      if(k==="holiday") hrs = `<span class="tag">Holiday</span>`;
+      else if(k==="half") hrs = logged ? fmtMins(logged) : `<span class="tag">½ Holiday</span>`;
+      else if(k==="closed") hrs = logged ? fmtMins(logged) : `<span class="tag">Closed</span>`;
+      else if(logged) hrs = fmtMins(logged);
+      else if(k==="work" && s<t) hrs = "0h";
+      const wH = Math.min(100, c/DAY*100), wW = Math.min(100-wH, logged/DAY*100);
+      html += `<button type="button" class="${cls.join(" ")}" data-day="${s}" aria-label="${esc(fmtDay(s))}, ${logged?fmtMins(logged):"nothing"} logged${k==="closed"?", office closed":k==="holiday"?", holiday":k==="half"?", half-day holiday":""}">
+        <span class="dn"><span>${d.getDate()}</span>${pending?'<i class="dot"></i>':""}</span>
+        <span class="hrs">${hrs}</span>
+        <span class="meter">${wW?`<i class="w" style="width:${Math.min(100,logged/((DAY-c)||DAY)*100)}%"></i>`:""}</span>
+      </button>`;
+    }
+    $("cal").innerHTML = html;
+  }
+  function renderDay(){
+    const s = state.sel, box=$("dayview");
+    if(!s){ box.innerHTML = `<p class="muted" style="margin:0">Tap a date to see its entries.</p>`; return; }
+    const closed=closedSet(), items = (byDate()[s]||[]).slice().sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+    const logged = sumMins(items), k=kind(s,closed), c=credit(s,closed), total=logged+c;
+    let status;
+    if(k==="weekend") status = `<span class="pill neutral">Weekend${logged?" · "+fmtMins(logged)+" logged":""}</span>`;
+    else if(k==="closed") status = `<span class="pill neutral">Office closed · not in target${logged?" · "+fmtMins(logged)+" logged":""}</span>`;
+    else if(k==="holiday") status = `<span class="pill hol">Holiday · day off, still in target${logged?" · "+fmtMins(logged)+" logged":""}</span>`;
+    else if(total>=DAY) status = `<span class="pill ok">${fmtMins(logged)} of ${fmtMins(DAY-c)}${c?" (½ holiday)":""}</span>`;
+    else status = `<span class="pill ${s<todayIso()?"behind":"neutral"}">${fmtMins(logged)} of ${fmtMins(DAY-c)}${c?" (½ holiday)":""} · ${fmtMins(DAY-total)} short</span>`;
+    const opts = [["work","Working day"],["holiday","Holiday"],["half","Half-day holiday"],["closed","Office closed"]];
+    box.innerHTML = `<div class="dh"><b>${esc(fmtDay(s))}</b>${status}</div>
+      ${k==="weekend" ? "" : `<div class="dayrow"><div class="seg" role="group" aria-label="Day type">${opts.map(([v,l])=>`<button type="button" data-daykind="${v}" data-date="${s}" aria-pressed="${k===v}">${l}</button>`).join("")}</div></div>`}
+      <div class="dayrow"><button type="button" class="small primary" data-logday="${s}">Log time on this day</button></div>
+      ${items.length ? items.map(rowHtml).join("") : `<div class="empty"><b>No entries</b>Nothing logged for this date yet.</div>`}`;
+  }
+
+  // ---- ledger ----
+  function inPeriod(e){
+    if(state.period==="week") return e.date >= weekStart();
+    if(state.period==="month") return e.date >= monthStart();
+    if(state.period==="quarter"){ const q=quarterBounds(); return e.date>=q.start && e.date<=q.end; }
+    return true;
+  }
+  function visible(){
+    const q = state.q.trim().toLowerCase();
+    return state.entries.filter(e => inPeriod(e) &&
+      (!state.company || e.company===state.company) &&
+      (!state.x || (state.x==="yes") === !!e.onXsuite) &&
+      (!q || (e.ticket+" "+e.description+" "+e.company).toLowerCase().includes(q))
+    ).sort((a,b)=> b.date.localeCompare(a.date) || (b.createdAt||0)-(a.createdAt||0));
+  }
+  function rowHtml(e){
+    return `<div class="row">
+      <span class="co" title="${esc(e.company)}">${esc(e.company)}</span>
+      <span class="tk" title="${esc(e.ticket)}">${esc(e.ticket)}</span>
+      <span class="ds">${esc(e.description)||'<span class="muted">No description</span>'}</span>
+      <span class="tm">${fmtMins(e.minutes)}</span>
+      <button type="button" class="chip ${e.onXsuite?"yes":"no"}" data-x="${esc(e.id)}" title="Tap to change">${e.onXsuite?"On X-Suite":"Not on X-Suite"}</button>
+      <span class="ops">${state.confirmDel===e.id
+        ? `<span class="confirm">Delete? <button type="button" class="ghost danger" data-delok="${esc(e.id)}">Yes</button><button type="button" class="ghost" data-delno="1">No</button></span>`
+        : `<button type="button" class="ghost" data-edit="${esc(e.id)}">Edit</button><button type="button" class="ghost danger" data-del="${esc(e.id)}">Delete</button>`}</span>
+    </div>`;
+  }
+  function renderCompanies(){
+    const cos = [...new Set(state.entries.map(e=>e.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    $("companyList").innerHTML = cos.map(c=>`<option value="${esc(c)}">`).join("");
+    if(!cos.includes(state.company)) state.company = "";
+    $("filterCompany").innerHTML = `<option value="">All companies</option>` + cos.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+    $("filterCompany").value = state.company;
+  }
+  function renderLedger(){
+    const rows = visible(), total = sumMins(rows), pend = rows.filter(e=>!e.onXsuite);
+    $("ledgerSum").textContent = rows.length ? `${fmtMins(total)} across ${rows.length} entr${rows.length===1?"y":"ies"} · ${fmtMins(sumMins(pend))} not yet on X-Suite` : "";
+    const by = {}; rows.forEach(e=>{ by[e.company]=(by[e.company]||0)+(e.minutes||0); });
+    const list = Object.entries(by).sort((a,b)=>b[1]-a[1]), max = list.length ? list[0][1] : 1;
+    $("bars").innerHTML = list.map(([c,m])=>`<div class="bar"><span class="n" title="${esc(c)}">${esc(c)}</span><span class="t"><i style="width:${Math.max(2,m/max*100)}%"></i></span><span class="h">${fmtMins(m)}</span></div>`).join("");
+    $("exportBtn").hidden = !(downloads && rows.length);
+    if(!rows.length){
+      $("ledger").innerHTML = state.entries.length
+        ? `<div class="empty"><b>Nothing matches these filters</b>Try another period or clear the search.</div>`
+        : `<div class="empty"><b>No time logged yet</b>Use the form above, or tap a date in the calendar and choose “Log time on this day”.</div>`;
+      return;
+    }
+    const days = {}; rows.forEach(e=>{ (days[e.date] ||= []).push(e); });
+    $("ledger").innerHTML = Object.keys(days).sort().reverse().map(d=>
+      `<div><div class="dayhead"><b>${esc(fmtDay(d))}</b><span>${fmtMins(sumMins(days[d]))}</span></div>${days[d].map(rowHtml).join("")}</div>`).join("");
+  }
+  function render(){ renderCompanies(); renderBonus(); renderCal(); renderDay(); renderLedger(); }
+
+  // ---- settings (office-closed days and holidays) ----
+  let saving = Promise.resolve();
+  function saveSettings(){
+    if(!settingsRef) return;
+    const body = { closed: (state.closed || DEFAULT_CLOSED).slice().sort(), holidays: { ...state.holidays } };
+    saving = saving.then(()=>settingsRef.set(body)).catch(()=>{ $("status").textContent="Couldn't save that day change. Try again."; });
+  }
+  function setDayKind(s, k){
+    const closed = closedSet(), hol = { ...state.holidays };
+    closed.delete(s); delete hol[s];
+    if(k==="closed") closed.add(s);
+    if(k==="holiday") hol[s] = DAY;
+    if(k==="half") hol[s] = DAY/2;
+    state.closed = [...closed].sort(); state.holidays = hol;
+    render(); saveSettings();
+  }
+
+  // ---- form ----
+  function resetForm(keep){
+    const company=$("fCompany").value, date=$("fDate").value;
+    $("entryForm").reset();
+    if(keep){ $("fCompany").value=company; $("fDate").value=date; } else $("fDate").value = state.sel || todayIso();
+    state.editing=null; $("formTitle").textContent="Log time"; $("saveBtn").textContent="Add entry"; $("cancelEdit").hidden=true; $("formErr").textContent="";
+  }
+  $("fDate").value = todayIso();
+  $("entryForm").addEventListener("submit", async ev=>{
+    ev.preventDefault();
+    const company=$("fCompany").value.trim(), ticket=$("fTicket").value.trim(), date=$("fDate").value, minutes=parseTime($("fTime").value);
+    if(!company || !ticket || !date){ $("formErr").textContent="Add a company, ticket number and date."; return; }
+    if(!minutes || minutes<=0){ $("formErr").textContent="Enter time like 45m, 1h 30m, 1:30 or 1.5."; return; }
+    if(!col){ $("formErr").textContent="Saving isn't available here. Open the page while signed in to claude.ai."; return; }
+    const data = { company, ticket, description:$("fDesc").value.trim(), date, minutes, onXsuite:$("fXsuite").checked };
+    $("saveBtn").disabled=true;
+    try{
+      if(state.editing){ const prev=state.entries.find(e=>e.id===state.editing); await col.doc(state.editing).set({ ...data, createdAt: prev?.createdAt||Date.now() }); resetForm(false); if(state.returnTab){ showTab(state.returnTab); state.returnTab=null; return; } }
+      else { await col.add({ ...data, createdAt: Date.now() }); resetForm(true); }
+      $("fTicket").focus();
+    }catch(e){ $("formErr").textContent = e && e.code==="quota_exceeded" ? "Storage is full. Delete some old entries and try again." : "Couldn't save that entry. Try again in a moment."; }
+    finally{ $("saveBtn").disabled=false; }
+  });
+  $("cancelEdit").addEventListener("click", ()=>{ resetForm(false); if(state.returnTab){ showTab(state.returnTab); state.returnTab=null; } });
+
+  // ---- tabs ----
+  const TABS = ["bonus","calendar","log","entries"];
+  function showTab(name){
+    if(!TABS.includes(name)) name="bonus";
+    state.tab = name;
+    document.querySelectorAll(".tabs [data-tab]").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.tab===name)));
+    document.querySelectorAll("[data-pane]").forEach(p=>{ p.hidden = p.dataset.pane!==name; });
+    try{ localStorage.setItem("ttt-tab", name); }catch(_){}
+    window.scrollTo({top:0});
+  }
+  let startTab = (location.hash||"").slice(1);
+  if(!TABS.includes(startTab)){ try{ startTab = localStorage.getItem("ttt-tab")||"bonus"; }catch(_){ startTab="bonus"; } }
+  showTab(startTab);
+
+  // ---- calendar controls ----
+  function setMonth(y,m){ const d=new Date(y,m,1); state.calY=d.getFullYear(); state.calM=d.getMonth(); renderCal(); }
+  $("calPrev").addEventListener("click", ()=>setMonth(state.calY, state.calM-1));
+  $("calNext").addEventListener("click", ()=>setMonth(state.calY, state.calM+1));
+  $("calToday").addEventListener("click", ()=>{ const d=new Date(); state.sel=todayIso(); setMonth(d.getFullYear(), d.getMonth()); renderDay(); });
+  $("cal").addEventListener("click", ev=>{
+    const c = ev.target.closest("[data-day]"); if(!c) return;
+    state.sel = c.dataset.day; state.confirmDel=null;
+    const d=parse(state.sel);
+    if(d.getMonth()!==state.calM) setMonth(d.getFullYear(), d.getMonth()); else renderCal();
+    renderDay();
+    if(!state.editing) $("fDate").value = state.sel;
+  });
+
+  // ---- actions (day panel and ledger) ----
+  document.addEventListener("click", async ev=>{
+    const b = ev.target.closest("button"); if(!b) return;
+    if(b.dataset.daykind){
+      if(!settingsRef){ $("status").textContent="Sign in to claude.ai to save day changes"; return; }
+      setDayKind(b.dataset.date, b.dataset.daykind); return;
+    }
+    if(b.dataset.tab){ showTab(b.dataset.tab); return; }
+    if(b.dataset.logday){
+      if(state.editing) resetForm(false);
+      $("fDate").value = b.dataset.logday;
+      showTab("log"); $("fCompany").focus({preventScroll:true});
+      return;
+    }
+    if(!col) return;
+    if(b.dataset.x){
+      const e=state.entries.find(x=>x.id===b.dataset.x); if(!e) return;
+      b.disabled=true; try{ await col.doc(e.id).update({ onXsuite: !e.onXsuite }); }catch(_){ b.disabled=false; }
+    } else if(b.dataset.edit){
+      const e=state.entries.find(x=>x.id===b.dataset.edit); if(!e) return;
+      state.editing=e.id;
+      $("fCompany").value=e.company; $("fTicket").value=e.ticket; $("fDesc").value=e.description||"";
+      $("fDate").value=e.date; $("fTime").value=fmtMins(e.minutes); $("fXsuite").checked=!!e.onXsuite;
+      $("formTitle").textContent="Edit entry"; $("saveBtn").textContent="Save changes"; $("cancelEdit").hidden=false;
+      state.returnTab = state.tab; showTab("log"); $("fTime").focus({preventScroll:true});
+    } else if(b.dataset.del){ state.confirmDel=b.dataset.del; renderDay(); renderLedger(); }
+    else if(b.dataset.delno){ state.confirmDel=null; renderDay(); renderLedger(); }
+    else if(b.dataset.delok){
+      const id=b.dataset.delok; state.confirmDel=null;
+      try{ await col.doc(id).delete(); if(state.editing===id) resetForm(false); }catch(_){ render(); }
+    }
+  });
+
+  // ---- filters ----
+  function setPeriod(p){
+    state.period=p;
+    document.querySelectorAll("#periodSeg button").forEach(x=>x.setAttribute("aria-pressed", String(x.dataset.period===p)));
+    renderLedger();
+  }
+  document.querySelectorAll("#periodSeg button").forEach(b=>b.addEventListener("click",()=>{ setPeriod(b.dataset.period); try{ localStorage.setItem("ttt-period2", b.dataset.period); }catch(_){} }));
+  try{ const p=localStorage.getItem("ttt-period2"); if(p && document.querySelector(`#periodSeg button[data-period="${p}"]`)) state.period=p; }catch(_){}
+  $("filterCompany").addEventListener("change", e=>{ state.company=e.target.value; renderLedger(); });
+  $("filterX").addEventListener("change", e=>{ state.x=e.target.value; renderLedger(); });
+  $("search").addEventListener("input", e=>{ state.q=e.target.value; renderLedger(); });
+
+  // ---- export ----
+  $("exportBtn").addEventListener("click", async ()=>{
+    if(!downloads) return;
+    const q = v => '"'+String(v??"").replace(/"/g,'""')+'"';
+    const lines=[["Company","Ticket Number","Description","Date","Time Taken","Hours","On X-Suite"].map(q).join(",")]
+      .concat(visible().map(e=>[e.company,e.ticket,e.description,e.date,fmtMins(e.minutes),decHours(e.minutes),e.onXsuite?"Yes":"No"].map(q).join(",")));
+    saveFile("time-entries-"+todayIso()+".csv", lines.join("\n"), "text/csv");
+  });
+
+  // ---- start ----
+  const now=new Date(); state.calY=now.getFullYear(); state.calM=now.getMonth(); state.sel=todayIso();
+  setPeriod(state.period);
+  render();
+
+  // ---- browser storage (this device only) ----
+  function saveFile(name, text, type){
+    const url = URL.createObjectURL(new Blob([text], {type: type+";charset=utf-8"}));
+    const a = document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+  const STORE_KEY = "ticket-time-tracker-v1";
+  const store = { entries:{}, settings:null };
+  const entryListeners = [], settingsListeners = [];
+  let storageOk = true;
+  function loadStore(){
+    try{ const raw = localStorage.getItem(STORE_KEY); if(raw){ const d = JSON.parse(raw); store.entries = d.entries||{}; store.settings = d.settings||null; } }
+    catch(_){ storageOk = false; }
+  }
+  function persist(){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+    catch(_){ storageOk = false; $("status").textContent="Couldn't save: browser storage is blocked or full"; throw {code:"unavailable"}; }
+  }
+  const entriesSnap = () => ({ docs: Object.keys(store.entries).map(id=>({ id, exists:true, data:()=>store.entries[id] })) });
+  const settingsSnap = () => ({ exists: !!store.settings, data: ()=>store.settings });
+  function notify(){ entryListeners.forEach(f=>f(entriesSnap())); settingsListeners.forEach(f=>f(settingsSnap())); }
+  const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  col = {
+    add: async data => { const id=newId(); store.entries[id]={...data}; persist(); notify(); return { id }; },
+    doc: id => ({
+      set: async data => { store.entries[id]={...data}; persist(); notify(); },
+      update: async data => { if(!store.entries[id]) throw {code:"invalid_argument"}; store.entries[id]={...store.entries[id], ...data}; persist(); notify(); },
+      delete: async () => { delete store.entries[id]; persist(); notify(); }
+    }),
+    onSnapshot: fn => { entryListeners.push(fn); fn(entriesSnap()); return ()=>{}; }
+  };
+  settingsRef = {
+    set: async data => { store.settings={...data}; persist(); notify(); },
+    onSnapshot: fn => { settingsListeners.push(fn); fn(settingsSnap()); return ()=>{}; }
+  };
+  downloads = { save: async ({filename, data}) => saveFile(filename, data, "text/csv") };
+  window.addEventListener("storage", e=>{ if(e.key===STORE_KEY){ loadStore(); notify(); } });
+
+  // backup / restore
+  $("backupBtn").addEventListener("click", ()=>{
+    saveFile("time-tracker-backup-"+todayIso()+".json", JSON.stringify({ app:"ticket-time-tracker", version:1, savedAt:new Date().toISOString(), ...store }, null, 2), "application/json");
+  });
+  $("restoreBtn").addEventListener("click", ()=>$("restoreFile").click());
+  $("restoreFile").addEventListener("change", async e=>{
+    const f = e.target.files[0]; e.target.value=""; if(!f) return;
+    try{
+      const d = JSON.parse(await f.text());
+      if(!d || typeof d.entries!=="object") throw 0;
+      store.entries = d.entries; store.settings = d.settings||null; persist(); notify();
+      $("restoreMsg").style.color="var(--ok)"; $("restoreMsg").textContent="Restored "+Object.keys(d.entries).length+" entries from "+f.name+".";
+    }catch(_){ $("restoreMsg").style.color=""; $("restoreMsg").textContent="That file isn't a tracker backup. Choose a .json file made with Back up."; }
+  });
+
+  loadStore();
+  $("status").textContent = storageOk ? "Saved in this browser only · back up regularly" : "Browser storage is blocked, so entries won't be kept";
+  col.onSnapshot(snap=>{ state.entries = snap.docs.map(d=>({ id:d.id, ...d.data() })); render(); });
+  settingsRef.onSnapshot(snap=>{
+    const d = snap.exists ? snap.data() : null;
+    state.closed = d ? (Array.isArray(d.closed) ? d.closed.slice() : null) : null;
+    state.holidays = d && d.holidays && typeof d.holidays==="object" ? { ...d.holidays } : {};
+    render();
+  });
+})();
+</script>
+
+</body>
+</html>
