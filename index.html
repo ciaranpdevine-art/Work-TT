@@ -167,6 +167,12 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
 @media (prefers-reduced-motion:no-preference){.bar .t i,.ladder .fill{transition:width .3s ease}}
 </style>
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f6e66">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Time Tracker">
 </head>
 <body>
 
@@ -784,5 +790,6 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
 })();
 </script>
 
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{});});}</script>
 </body>
 </html>
