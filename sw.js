@@ -1,7 +1,7 @@
 // Minimal service worker: makes the app installable and gives basic offline support.
 // The page is fetched network-first so you always get the latest version when online.
-const CACHE_NAME = 'work-tt-v5';
-const APP_SHELL = ['./', './index.html', './manifest.json?v=3', './icon-192.png', './icon-512.png', './cloud.js', './apple-touch-icon.png'];
+const CACHE_NAME = 'work-tt-v6';
+const APP_SHELL = ['./', './index.html', './manifest.json?v=4', './icon-192.png', './icon-512.png', './cloud.js', './apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(APP_SHELL)));
@@ -33,6 +33,6 @@ self.addEventListener('fetch', (event) => {
     fetch(req, { cache: 'no-cache' }).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, copy)); }
       return res;
-    }).catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
+    }).catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match('./index.html')))
   );
 });

@@ -1,8 +1,9 @@
 {
+  "id": "./?app=work-tt",
   "name": "Ticket Time Tracker",
   "short_name": "Time Tracker",
   "description": "Log time against work tickets and track bonus periods.",
-  "start_url": "./index.html",
+  "start_url": "./index.html?app=work-tt",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
