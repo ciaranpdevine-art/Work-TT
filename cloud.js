@@ -6,7 +6,14 @@
   // Firebase project "ciaran-apps". The web config is not a secret: the
   // Firestore rules (only the signed-in owner can read or write
   // users/<their uid>/...) are what keep the data private.
-  const CONFIG = null;
+  const CONFIG = {
+    apiKey: "AIzaSyDcxeNsspPlb6Tijn6dJ4qU4EiYujVy2fg",
+    authDomain: "ciaran-apps.firebaseapp.com",
+    projectId: "ciaran-apps",
+    storageBucket: "ciaran-apps.firebasestorage.app",
+    messagingSenderId: "437535359271",
+    appId: "1:437535359271:web:6ce2c64c0742a40d6d2902"
+  };
 
   const listeners = [];
   let user = null;
