@@ -167,6 +167,10 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
 @media (prefers-reduced-motion:no-preference){.bar .t i,.ladder .fill{transition:width .3s ease}}
 </style>
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="cloud.js"></script>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f6e66">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -748,16 +752,16 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   function notify(){ entryListeners.forEach(f=>f(entriesSnap())); settingsListeners.forEach(f=>f(settingsSnap())); }
   const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   col = {
-    add: async data => { const id=newId(); store.entries[id]={...data}; persist(); notify(); return { id }; },
+    add: async data => { const id=newId(); store.entries[id]={...data}; persist(); notify(); cloudPut(id); return { id }; },
     doc: id => ({
-      set: async data => { store.entries[id]={...data}; persist(); notify(); },
-      update: async data => { if(!store.entries[id]) throw {code:"invalid_argument"}; store.entries[id]={...store.entries[id], ...data}; persist(); notify(); },
-      delete: async () => { delete store.entries[id]; persist(); notify(); }
+      set: async data => { store.entries[id]={...data}; persist(); notify(); cloudPut(id); },
+      update: async data => { if(!store.entries[id]) throw {code:"invalid_argument"}; store.entries[id]={...store.entries[id], ...data}; persist(); notify(); cloudPut(id); },
+      delete: async () => { delete store.entries[id]; persist(); notify(); cloudDel(id); }
     }),
     onSnapshot: fn => { entryListeners.push(fn); fn(entriesSnap()); return ()=>{}; }
   };
   settingsRef = {
-    set: async data => { store.settings={...data}; persist(); notify(); },
+    set: async data => { store.settings={...data}; persist(); notify(); cloudSettings(); },
     onSnapshot: fn => { settingsListeners.push(fn); fn(settingsSnap()); return ()=>{}; }
   };
   downloads = { save: async ({filename, data}) => saveFile(filename, data, "text/csv") };
@@ -773,13 +777,59 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     try{
       const d = JSON.parse(await f.text());
       if(!d || typeof d.entries!=="object") throw 0;
-      store.entries = d.entries; store.settings = d.settings||null; persist(); notify();
+      store.entries = d.entries; store.settings = d.settings||null; persist(); notify(); cloudReplaceAll();
       $("restoreMsg").style.color="var(--ok)"; $("restoreMsg").textContent="Restored "+Object.keys(d.entries).length+" entries from "+f.name+".";
     }catch(_){ $("restoreMsg").style.color=""; $("restoreMsg").textContent="That file isn't a tracker backup. Choose a .json file made with Back up."; }
   });
 
+  // ---- cloud sync (signed in: Firestore is the source of truth, this browser keeps a cache) ----
+  let cloud = null;  // { entries: CollectionReference, settings: DocumentReference, stop() }
+  const saveLocal = () => { try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(_){} };
+  const cloudFail = () => window.Cloud && Cloud.note("Sync problem: changes are saved here and will retry");
+  function cloudPut(id){ if(cloud && store.entries[id]) cloud.entries.doc(id).set(Cloud.clean(store.entries[id])).catch(cloudFail); }
+  function cloudDel(id){ if(cloud) cloud.entries.doc(id).delete().catch(cloudFail); }
+  function cloudSettings(){ if(cloud && store.settings) cloud.settings.set(Cloud.clean(store.settings)).catch(cloudFail); }
+  async function cloudReplaceAll(){
+    if(!cloud) return;
+    try{
+      const snap = await cloud.entries.get();
+      const b = firebase.firestore().batch(); let n=0;
+      snap.docs.forEach(d=>{ if(!store.entries[d.id] && n<450){ b.delete(d.ref); n++; } });
+      if(n) await b.commit();
+      await Cloud.putAll(cloud.entries, store.entries); cloudSettings();
+    }catch(_){ cloudFail(); }
+  }
+  function updateStatus(){
+    $("status").textContent = cloud ? "Synced to your account · available on any device"
+      : storageOk ? "Saved in this browser only · sign in above to sync" : "Browser storage is blocked, so entries won't be kept";
+  }
+  if(window.Cloud) Cloud.onUser(async u=>{
+    if(cloud){ cloud.stop(); cloud=null; }
+    if(!u){ updateStatus(); return; }
+    const ref = Cloud.userRef();
+    const c = { entries: ref.collection("worktt_entries"), settings: ref.collection("worktt_meta").doc("settings"), stop(){} };
+    try{
+      if(!Cloud.migrated("worktt")){
+        // First sign-in on this device: upload anything here the account doesn't have yet. Nothing is overwritten.
+        Cloud.note("Uploading this device's entries…");
+        const have = new Set((await c.entries.get()).docs.map(d=>d.id));
+        const missing = {}; Object.keys(store.entries).forEach(id=>{ if(!have.has(id)) missing[id]=store.entries[id]; });
+        await Cloud.putAll(c.entries, missing);
+        const s = await c.settings.get();
+        if(!s.exists && store.settings) await c.settings.set(Cloud.clean(store.settings));
+        Cloud.markMigrated("worktt"); Cloud.note("");
+      }
+    }catch(_){ Cloud.note("Couldn't reach your account, so entries stay on this device for now. Reload to try again."); updateStatus(); return; }
+    if(Cloud.user!==u) return;
+    const u1 = c.entries.onSnapshot(s=>{ if(s.metadata.fromCache && s.empty && Object.keys(store.entries).length) return; // wait for the server rather than blank the list
+      store.entries={}; s.docs.forEach(d=>{ store.entries[d.id]=d.data(); }); saveLocal(); notify(); }, cloudFail);
+    const u2 = c.settings.onSnapshot(s=>{ if(s.exists){ store.settings=s.data(); saveLocal(); notify(); } }, cloudFail);
+    c.stop = ()=>{ u1(); u2(); };
+    cloud = c; updateStatus();
+  });
+
   loadStore();
-  $("status").textContent = storageOk ? "Saved in this browser only · back up regularly" : "Browser storage is blocked, so entries won't be kept";
+  updateStatus();
   col.onSnapshot(snap=>{ state.entries = snap.docs.map(d=>({ id:d.id, ...d.data() })); render(); });
   settingsRef.onSnapshot(snap=>{
     const d = snap.exists ? snap.data() : null;
