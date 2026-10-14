@@ -1,6 +1,6 @@
 // Minimal service worker: makes the app installable and gives basic offline support.
 // The page is fetched network-first so you always get the latest version when online.
-const CACHE_NAME = 'work-tt-v7';
+const CACHE_NAME = 'work-tt-v8';
 const APP_SHELL = ['./', './index.html', './manifest.json?v=4', './icon-192.png', './icon-512.png', './cloud.js', './apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {

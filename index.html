@@ -58,11 +58,11 @@ button.danger{color:var(--danger)}
 .muted{color:var(--muted)}
 
 /* tabs */
-.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:-6px}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:-6px}
 .tabs button{border:0;background:transparent;color:var(--muted);font-weight:600;font-size:.9rem;padding:9px 6px;border-radius:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tabs button:hover{color:var(--ink);background:var(--bg)}
 .tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
-@media (max-width:420px){.tabs button{font-size:.8rem;padding:9px 2px}}
+@media (max-width:420px){.tabs button{font-size:.76rem;padding:9px 1px}}
 
 /* bonus */
 .pill{font-size:.78rem;font-weight:600;border-radius:999px;padding:4px 12px;white-space:nowrap}
@@ -162,6 +162,40 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
 .empty{text-align:center;padding:24px 16px;color:var(--muted)}
 .empty b{display:block;color:var(--ink);font-family:var(--f-display);font-size:1.05rem;margin-bottom:4px}
 .listhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+/* quick picks on the log form */
+.picks{display:grid;gap:8px;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:8px}
+.picks[hidden]{display:none}
+.pickrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pickrow>.k{font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.pick{font-size:.82rem;font-weight:500;border-radius:999px;padding:5px 11px;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.pick b{font-family:var(--f-mono);font-weight:500;color:var(--accent)}
+.pick[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.opt{font-weight:400;text-transform:none;letter-spacing:0}
+/* tickets tab */
+.tsum{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.85rem;color:var(--muted)}
+.tsum b{font-family:var(--f-mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.tk-card{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:10px 12px;display:grid;gap:8px;min-width:0}
+.tk-card.closed{border-left-color:var(--line);opacity:.8}
+.tk-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:start}
+.tk-id{font-family:var(--f-mono);font-size:.95rem;color:var(--accent);overflow-wrap:anywhere}
+.tk-co{font-weight:600}
+.tk-title{color:var(--muted);font-size:.88rem;overflow-wrap:anywhere}
+.tk-hrs{font-family:var(--f-mono);font-size:1.35rem;font-weight:500;text-align:right;font-variant-numeric:tabular-nums;line-height:1.1}
+.tk-meta{font-size:.78rem;color:var(--muted);text-align:right;white-space:nowrap}
+.tk-ops{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.tk-id .chip{font-family:var(--f-body);vertical-align:2px;margin-left:4px}
+.chip.open{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.chip.shut{background:var(--bg);color:var(--muted);border-color:var(--line)}
+.tk-ents{display:grid;border-top:1px solid var(--line)}
+.tk-ent{display:grid;grid-template-columns:6.5rem minmax(0,1fr) 3.8rem;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem}
+.tk-ent .d{color:var(--muted)}
+.tk-ent .h{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.tk-ent .x{min-width:0;overflow-wrap:anywhere}
+.tlist{display:grid;gap:10px}
+.addtk{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:8px}
+.addtk[hidden]{display:none}
+.addtk .wide{grid-column:span 3}
+@media (max-width:640px){.addtk{grid-template-columns:1fr}.addtk .wide{grid-column:span 1}}
 .status{font-size:.8rem;color:var(--muted)}
 .confirm{display:flex;gap:6px;align-items:center;font-size:.85rem}
 @media (prefers-reduced-motion:no-preference){.bar .t i,.ladder .fill{transition:width .3s ease}}
@@ -193,6 +227,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     <button type="button" role="tab" data-tab="bonus" aria-selected="true">Bonus</button>
     <button type="button" role="tab" data-tab="calendar" aria-selected="false">Calendar</button>
     <button type="button" role="tab" data-tab="log" aria-selected="false">Log Time</button>
+    <button type="button" role="tab" data-tab="tickets" aria-selected="false">Tickets</button>
     <button type="button" role="tab" data-tab="entries" aria-selected="false">Entries</button>
   </nav>
 
@@ -269,16 +304,20 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   <section class="panel" aria-labelledby="formTitle" data-pane="log" hidden>
     <form id="entryForm" class="form" novalidate>
       <h2 id="formTitle" class="c6">Log time</h2>
+      <div class="c6 picks" id="picks" hidden>
+        <div class="pickrow" id="tkPicks"></div>
+        <div class="pickrow" id="coPicks"></div>
+      </div>
       <label class="c2">Company
-        <input id="fCompany" autocomplete="off" required placeholder="e.g. Northwind">
+        <input id="fCompany" list="dlCompany" autocomplete="off" required placeholder="e.g. Northwind">
       </label>
       <label class="c2">Ticket number
-        <input id="fTicket" class="mono" autocomplete="off" required placeholder="e.g. INC-20431">
+        <input id="fTicket" list="dlTicket" class="mono" autocomplete="off" required placeholder="e.g. INC-20431">
       </label>
       <label class="c2">Date
         <input id="fDate" type="date" required>
       </label>
-      <label class="c4">Description
+      <label class="c4"><span>Description <span class="opt">(optional)</span></span>
         <input id="fDesc" autocomplete="off" placeholder="What you worked on">
       </label>
       <label class="c2">Time taken (hrs)
@@ -292,7 +331,43 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
         <button type="button" id="cancelEdit" hidden>Cancel</button>
         <button type="submit" class="primary" id="saveBtn">Add entry</button>
       </div>
+      <datalist id="dlCompany"></datalist>
+      <datalist id="dlTicket"></datalist>
     </form>
+  </section>
+
+  <section class="panel" aria-labelledby="tkTitle" data-pane="tickets" hidden>
+    <div class="listhead">
+      <h2 id="tkTitle">Tickets</h2>
+      <button type="button" class="small primary" id="addTkBtn">Add ticket</button>
+    </div>
+    <form class="addtk" id="addTk" hidden novalidate>
+      <label>Company
+        <input id="tCompany" list="dlCompany" autocomplete="off" placeholder="e.g. Northwind">
+      </label>
+      <label>Ticket number
+        <input id="tTicket" class="mono" autocomplete="off" placeholder="e.g. INC-20431">
+      </label>
+      <label><span>Title <span class="opt">(optional)</span></span>
+        <input id="tTitle" autocomplete="off" placeholder="Short note on what it is">
+      </label>
+      <div class="wide actions" style="justify-content:flex-end">
+        <p class="err" id="tErr" role="alert" style="margin-right:auto"></p>
+        <button type="button" id="tCancel">Cancel</button>
+        <button type="submit" class="primary" id="tSave">Add ticket</button>
+      </div>
+    </form>
+    <div class="filters" aria-label="Ticket filters">
+      <div class="seg" role="group" aria-label="Status" id="tStatusSeg">
+        <button type="button" data-tstatus="open" aria-pressed="true">Open</button>
+        <button type="button" data-tstatus="closed" aria-pressed="false">Closed</button>
+        <button type="button" data-tstatus="all" aria-pressed="false">All</button>
+      </div>
+      <select id="tFilterCo" aria-label="Company"><option value="">All companies</option></select>
+      <input id="tSearch" type="search" placeholder="Search ticket or title" aria-label="Search tickets">
+    </div>
+    <div class="tsum" id="tSum"></div>
+    <div class="tlist" id="tList"></div>
   </section>
 
   <section class="panel" aria-labelledby="ledgerTitle" data-pane="entries" hidden>
@@ -330,8 +405,8 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   const DEFAULT_CLOSED = ["2026-12-25","2026-12-28","2027-01-01","2027-03-26","2027-03-29","2027-05-03","2027-05-31","2027-08-30","2027-12-27","2027-12-28"];
   const $ = id => document.getElementById(id);
   const gbp = n => "£"+n.toLocaleString("en-GB");
-  const state = { entries: [], closed: null, holidays: {}, period: "quarter", company: "", x: "", q: "", editing: null, confirmDel: null, sel: null, calY: 0, calM: 0 };
-  let col = null, settingsRef = null, downloads = null;
+  const state = { entries: [], tickets: {}, tStatus: "open", tCo: "", tQ: "", tOpen: null, tEditing: null, tConfirmDel: null, closed: null, holidays: {}, period: "quarter", company: "", x: "", q: "", editing: null, confirmDel: null, sel: null, calY: 0, calM: 0 };
+  let col = null, settingsRef = null, downloads = null, tcol = null;
 
   // ---- dates ----
   const pad = n => String(n).padStart(2,"0");
@@ -598,7 +673,96 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     $("ledger").innerHTML = Object.keys(days).sort().reverse().map(d=>
       `<div><div class="dayhead"><b>${esc(fmtDay(d))}</b><span>${fmtMins(sumMins(days[d]))}</span></div>${days[d].map(rowHtml).join("")}</div>`).join("");
   }
-  function render(){ renderCompanies(); renderBonus(); renderCal(); renderDay(); renderLedger(); }
+  // ---- tickets ----
+  const norm = s => String(s||"").trim().toLowerCase();
+  const tKey = (co, tk) => encodeURIComponent(norm(co)+"|"+norm(tk));
+  const shortDay = s => parse(s).toLocaleDateString(undefined,{day:"numeric",month:"short"});
+  // Every ticket: ones added on the Tickets tab, plus any that only appear in logged entries (counted as open).
+  function allTickets(){
+    const m = {};
+    const sorted = state.entries.slice().sort((a,b)=> a.date.localeCompare(b.date) || (a.createdAt||0)-(b.createdAt||0));
+    sorted.forEach(e=>{
+      if(!e.company || !e.ticket) return;
+      const k = tKey(e.company, e.ticket);
+      const t = m[k] ||= { key:k, company:e.company, ticket:e.ticket, title:"", status:"open", minutes:0, entries:[], last:"", createdAt:e.createdAt||0 };
+      t.company = e.company; t.ticket = e.ticket; // latest spelling wins
+      t.minutes += q15(e.minutes); t.entries.push(e); t.last = e.date;
+    });
+    Object.entries(state.tickets).forEach(([k,d])=>{
+      const t = m[k] ||= { key:k, company:d.company, ticket:d.ticket, title:"", status:"open", minutes:0, entries:[], last:"", createdAt:d.createdAt||0 };
+      t.title = d.title||""; t.status = d.status==="closed" ? "closed" : "open"; t.saved = true;
+      if(!t.entries.length){ t.company = d.company; t.ticket = d.ticket; }
+    });
+    return Object.values(m);
+  }
+  const byRecent = (a,b)=> (b.last||"").localeCompare(a.last||"") || (b.createdAt||0)-(a.createdAt||0);
+  function knownCompanies(){
+    const seen = new Map();
+    allTickets().sort(byRecent).forEach(t=>{ const k=norm(t.company); if(k && !seen.has(k)) seen.set(k, t.company); });
+    return [...seen.values()];
+  }
+  function renderDatalists(){
+    const opt = (v,l) => `<option value="${esc(v)}"${l?` label="${esc(l)}"`:""}></option>`;
+    $("dlCompany").innerHTML = knownCompanies().map(c=>opt(c)).join("");
+    const co = norm($("fCompany").value);
+    $("dlTicket").innerHTML = allTickets().filter(t=>t.status==="open" && (!co || norm(t.company)===co)).sort(byRecent)
+      .map(t=>opt(t.ticket, t.company+(t.title?" · "+t.title:""))).join("");
+  }
+  function renderPicks(){
+    const co = norm($("fCompany").value), tk = norm($("fTicket").value);
+    const open = allTickets().filter(t=>t.status==="open").sort(byRecent);
+    const forCo = co ? open.filter(t=>norm(t.company)===co) : open;
+    const tks = forCo.slice(0,8), cos = knownCompanies().slice(0,6);
+    $("tkPicks").innerHTML = tks.length ? `<span class="k">Open tickets</span>` + tks.map(t=>
+      `<button type="button" class="pick" data-pickt="${esc(t.key)}" aria-pressed="${norm(t.ticket)===tk && norm(t.company)===norm($("fCompany").value)}"><b>${esc(t.ticket)}</b>${co?"":" · "+esc(t.company)}</button>`).join("") : "";
+    $("coPicks").innerHTML = cos.length ? `<span class="k">Companies</span>` + cos.map(c=>
+      `<button type="button" class="pick" data-pickc="${esc(c)}" aria-pressed="${norm(c)===co}">${esc(c)}</button>`).join("") : "";
+    $("picks").hidden = !(tks.length || cos.length);
+  }
+  function tVisible(){
+    const q = norm(state.tQ);
+    return allTickets().filter(t =>
+      (state.tStatus==="all" || t.status===state.tStatus) &&
+      (!state.tCo || norm(t.company)===norm(state.tCo)) &&
+      (!q || norm(t.ticket+" "+t.title+" "+t.company).includes(q))
+    ).sort((a,b)=> (a.status===b.status?0:a.status==="open"?-1:1) || byRecent(a,b));
+  }
+  function ticketHtml(t){
+    const n = t.entries.length, isOpen = state.tOpen===t.key;
+    const ents = isOpen ? `<div class="tk-ents">${n ? t.entries.slice().reverse().map(e=>
+      `<div class="tk-ent"><span class="d">${esc(shortDay(e.date))}</span><span class="x">${esc(e.description)||'<span class="muted">No description</span>'}</span><span class="h">${fmtMins(e.minutes)}</span></div>`).join("")
+      : `<div class="empty" style="padding:12px">No time logged on this ticket yet.</div>`}</div>` : "";
+    const del = state.tConfirmDel===t.key
+      ? `<span class="confirm">Remove ticket? <button type="button" class="ghost danger" data-tdelok="${esc(t.key)}">Yes</button><button type="button" class="ghost" data-tdelno="1">No</button></span>`
+      : (t.saved && !n ? `<button type="button" class="ghost danger" data-tdel="${esc(t.key)}">Remove</button>` : "");
+    return `<div class="tk-card ${t.status==="closed"?"closed":""}">
+      <div class="tk-top">
+        <div><div class="tk-id">${esc(t.ticket)} <span class="chip ${t.status==="open"?"open":"shut"}">${t.status==="open"?"Open":"Closed"}</span></div><div class="tk-co">${esc(t.company)}</div>${t.title?`<div class="tk-title">${esc(t.title)}</div>`:""}</div>
+        <div><div class="tk-hrs">${fmtMins(t.minutes)}</div><div class="tk-meta">${n?`${n} entr${n===1?"y":"ies"} · last ${esc(shortDay(t.last))}`:"No time yet"}</div></div>
+      </div>
+      <div class="tk-ops">
+        <button type="button" class="small" data-tlog="${esc(t.key)}">Log time</button>
+        <button type="button" class="ghost" data-tstat="${esc(t.key)}">${t.status==="open"?"Close":"Reopen"}</button>
+        <button type="button" class="ghost" data-tshow="${esc(t.key)}" aria-expanded="${isOpen}">${isOpen?"Hide entries":"Entries"}</button>
+        <button type="button" class="ghost" data-tedit="${esc(t.key)}">Edit</button>
+        ${del}
+      </div>${ents}
+    </div>`;
+  }
+  function renderTickets(){
+    const all = allTickets(), open = all.filter(t=>t.status==="open");
+    const cos = knownCompanies().sort((a,b)=>a.localeCompare(b));
+    if(state.tCo && !cos.some(c=>norm(c)===norm(state.tCo))) state.tCo = "";
+    $("tFilterCo").innerHTML = `<option value="">All companies</option>` + cos.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+    $("tFilterCo").value = state.tCo;
+    document.querySelectorAll("#tStatusSeg button").forEach(x=>x.setAttribute("aria-pressed", String(x.dataset.tstatus===state.tStatus)));
+    $("tSum").innerHTML = all.length ? `<span><b>${open.length}</b> open</span><span><b>${fmtMins(sumMins(open.flatMap(t=>t.entries)))}</b> on open tickets</span><span><b>${all.length-open.length}</b> closed</span>` : "";
+    const rows = tVisible();
+    $("tList").innerHTML = rows.length ? rows.map(ticketHtml).join("")
+      : all.length ? `<div class="empty"><b>No ${state.tStatus==="all"?"":state.tStatus+" "}tickets here</b>Try another filter or clear the search.</div>`
+      : `<div class="empty"><b>No tickets yet</b>Tap “Add ticket”, or log time and the ticket appears here automatically.</div>`;
+  }
+  function render(){ renderCompanies(); renderBonus(); renderCal(); renderDay(); renderLedger(); renderTickets(); renderDatalists(); renderPicks(); }
 
   // ---- settings (office-closed days and holidays) ----
   let saving = Promise.resolve();
@@ -623,11 +787,31 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     $("entryForm").reset();
     if(keep){ $("fDate").value=date; } else $("fDate").value = state.sel || todayIso();
     state.editing=null; $("formTitle").textContent="Log time"; $("saveBtn").textContent="Add entry"; $("cancelEdit").hidden=true; $("formErr").textContent="";
+    if(keep) $("fCompany").value=company;
+    renderDatalists(); renderPicks();
   }
   $("fDate").value = todayIso();
+  $("fCompany").addEventListener("input", ()=>{ renderDatalists(); renderPicks(); });
+  $("fTicket").addEventListener("input", ()=>{
+    // Picking a known ticket fills in its company.
+    const tk = norm($("fTicket").value), co = norm($("fCompany").value);
+    if(tk){ const hits = allTickets().filter(t=>norm(t.ticket)===tk && (!co || norm(t.company)===co));
+      if(hits.length===1 && !co){ $("fCompany").value = hits[0].company; renderDatalists(); } }
+    renderPicks();
+  });
+  $("picks").addEventListener("click", ev=>{
+    const b = ev.target.closest("button"); if(!b) return;
+    if(b.dataset.pickc!==undefined){ $("fCompany").value = b.dataset.pickc; if(norm($("fTicket").value) && !allTickets().some(t=>norm(t.company)===norm(b.dataset.pickc) && norm(t.ticket)===norm($("fTicket").value))) $("fTicket").value=""; renderDatalists(); renderPicks(); $("fTicket").focus({preventScroll:true}); }
+    if(b.dataset.pickt){ const t = allTickets().find(x=>x.key===b.dataset.pickt); if(t){ $("fCompany").value=t.company; $("fTicket").value=t.ticket; renderDatalists(); renderPicks(); $("fTime").focus({preventScroll:true}); } }
+  });
   $("entryForm").addEventListener("submit", async ev=>{
     ev.preventDefault();
-    const company=$("fCompany").value.trim(), ticket=$("fTicket").value.trim(), date=$("fDate").value, rawMins=parseTime($("fTime").value), minutes=rawMins>0 ? q15(rawMins) : null;
+    let company=$("fCompany").value.trim(), ticket=$("fTicket").value.trim();
+    // Reuse the existing spelling when this matches a ticket already on the list.
+    const known = allTickets().find(t=>norm(t.company)===norm(company) && norm(t.ticket)===norm(ticket));
+    if(known){ company=known.company; ticket=known.ticket; }
+    const date=$("fDate").value, rawMins=parseTime($("fTime").value), minutes=rawMins>0 ? q15(rawMins) : null;
+    if(!known && company){ const kc = knownCompanies().find(c=>norm(c)===norm(company)); if(kc) company=kc; }
     if(!company || !ticket || !date){ $("formErr").textContent="Add a company, ticket number and date."; return; }
     if(!minutes || minutes<=0){ $("formErr").textContent="Enter time in hours, like 0.25, 0.75 or 1.5."; return; }
     if(!col){ $("formErr").textContent="Saving isn't available here. Open the page while signed in to claude.ai."; return; }
@@ -643,7 +827,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   $("cancelEdit").addEventListener("click", ()=>{ resetForm(false); if(state.returnTab){ showTab(state.returnTab); state.returnTab=null; } });
 
   // ---- tabs ----
-  const TABS = ["bonus","calendar","log","entries"];
+  const TABS = ["bonus","calendar","log","tickets","entries"];
   function showTab(name){
     if(!TABS.includes(name)) name="bonus";
     state.tab = name;
@@ -703,6 +887,53 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     }
   });
 
+  // ---- tickets tab ----
+  function openAddTk(t){
+    state.tEditing = t ? t.key : null;
+    $("tCompany").value = t ? t.company : (state.tCo || ""); $("tTicket").value = t ? t.ticket : ""; $("tTitle").value = t ? (t.title||"") : "";
+    $("tCompany").disabled = $("tTicket").disabled = !!t;
+    $("tSave").textContent = t ? "Save" : "Add ticket"; $("tErr").textContent = "";
+    $("addTk").hidden = false; (t ? $("tTitle") : $("tCompany")).focus({preventScroll:true});
+  }
+  function closeAddTk(){ $("addTk").hidden = true; state.tEditing = null; $("tCompany").disabled = $("tTicket").disabled = false; }
+  $("addTkBtn").addEventListener("click", ()=>{ $("addTk").hidden ? openAddTk(null) : closeAddTk(); });
+  $("tCancel").addEventListener("click", closeAddTk);
+  $("addTk").addEventListener("submit", async ev=>{
+    ev.preventDefault();
+    if(!tcol){ $("tErr").textContent="Saving isn't available here."; return; }
+    if(state.tEditing){
+      const t = allTickets().find(x=>x.key===state.tEditing); if(!t){ closeAddTk(); return; }
+      await tcol.doc(t.key).set({ company:t.company, ticket:t.ticket, title:$("tTitle").value.trim(), status:t.status, createdAt:t.createdAt||Date.now(), updatedAt:Date.now() });
+      closeAddTk(); return;
+    }
+    const co = $("tCompany").value.trim(), tk = $("tTicket").value.trim();
+    if(!co || !tk){ $("tErr").textContent="Add a company and ticket number."; return; }
+    const k = tKey(co, tk);
+    if(allTickets().some(t=>t.key===k)){ $("tErr").textContent="That ticket is already on the list."; return; }
+    await tcol.doc(k).set({ company:co, ticket:tk, title:$("tTitle").value.trim(), status:"open", createdAt:Date.now(), updatedAt:Date.now() });
+    state.tStatus = state.tStatus==="closed" ? "open" : state.tStatus;
+    closeAddTk();
+  });
+  $("tStatusSeg").addEventListener("click", ev=>{ const b=ev.target.closest("[data-tstatus]"); if(!b) return; state.tStatus=b.dataset.tstatus; try{ localStorage.setItem("ttt-tstatus", state.tStatus); }catch(_){} renderTickets(); });
+  try{ const s=localStorage.getItem("ttt-tstatus"); if(["open","closed","all"].includes(s)) state.tStatus=s; }catch(_){}
+  $("tFilterCo").addEventListener("change", e=>{ state.tCo=e.target.value; renderTickets(); });
+  $("tSearch").addEventListener("input", e=>{ state.tQ=e.target.value; renderTickets(); });
+  $("tList").addEventListener("click", async ev=>{
+    const b = ev.target.closest("button"); if(!b) return;
+    const find = k => allTickets().find(t=>t.key===k);
+    if(b.dataset.tshow){ state.tOpen = state.tOpen===b.dataset.tshow ? null : b.dataset.tshow; renderTickets(); return; }
+    if(b.dataset.tlog){ const t=find(b.dataset.tlog); if(!t) return; if(state.editing) resetForm(false);
+      $("fCompany").value=t.company; $("fTicket").value=t.ticket; $("fDate").value=todayIso(); renderDatalists(); renderPicks();
+      showTab("log"); $("fTime").focus({preventScroll:true}); return; }
+    if(b.dataset.tedit){ const t=find(b.dataset.tedit); if(t){ openAddTk(t); window.scrollTo({top:0}); } return; }
+    if(b.dataset.tdel){ state.tConfirmDel=b.dataset.tdel; renderTickets(); return; }
+    if(b.dataset.tdelno){ state.tConfirmDel=null; renderTickets(); return; }
+    if(!tcol) return;
+    if(b.dataset.tstat){ const t=find(b.dataset.tstat); if(!t) return;
+      await tcol.doc(t.key).set({ company:t.company, ticket:t.ticket, title:t.title||"", status:t.status==="open"?"closed":"open", createdAt:t.createdAt||Date.now(), updatedAt:Date.now() }); return; }
+    if(b.dataset.tdelok){ const k=b.dataset.tdelok; state.tConfirmDel=null; await tcol.doc(k).delete(); }
+  });
+
   // ---- filters ----
   function setPeriod(p){
     state.period=p;
@@ -736,11 +967,11 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     setTimeout(()=>URL.revokeObjectURL(url), 1000);
   }
   const STORE_KEY = "ticket-time-tracker-v1";
-  const store = { entries:{}, settings:null };
-  const entryListeners = [], settingsListeners = [];
+  const store = { entries:{}, settings:null, tickets:{} };
+  const entryListeners = [], settingsListeners = [], ticketListeners = [];
   let storageOk = true;
   function loadStore(){
-    try{ const raw = localStorage.getItem(STORE_KEY); if(raw){ const d = JSON.parse(raw); store.entries = d.entries||{}; store.settings = d.settings||null; } }
+    try{ const raw = localStorage.getItem(STORE_KEY); if(raw){ const d = JSON.parse(raw); store.entries = d.entries||{}; store.settings = d.settings||null; store.tickets = d.tickets||{}; } }
     catch(_){ storageOk = false; }
   }
   function persist(){
@@ -749,7 +980,8 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   }
   const entriesSnap = () => ({ docs: Object.keys(store.entries).map(id=>({ id, exists:true, data:()=>store.entries[id] })) });
   const settingsSnap = () => ({ exists: !!store.settings, data: ()=>store.settings });
-  function notify(){ entryListeners.forEach(f=>f(entriesSnap())); settingsListeners.forEach(f=>f(settingsSnap())); }
+  const ticketsSnap = () => ({ docs: Object.keys(store.tickets).map(id=>({ id, exists:true, data:()=>store.tickets[id] })) });
+  function notify(){ entryListeners.forEach(f=>f(entriesSnap())); settingsListeners.forEach(f=>f(settingsSnap())); ticketListeners.forEach(f=>f(ticketsSnap())); }
   const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   col = {
     add: async data => { const id=newId(); store.entries[id]={...data}; persist(); notify(); cloudPut(id); return { id }; },
@@ -764,6 +996,13 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     set: async data => { store.settings={...data}; persist(); notify(); cloudSettings(); },
     onSnapshot: fn => { settingsListeners.push(fn); fn(settingsSnap()); return ()=>{}; }
   };
+  tcol = {
+    doc: id => ({
+      set: async data => { store.tickets[id]={...data}; persist(); notify(); cloudTPut(id); },
+      delete: async () => { delete store.tickets[id]; persist(); notify(); cloudTDel(id); }
+    }),
+    onSnapshot: fn => { ticketListeners.push(fn); fn(ticketsSnap()); return ()=>{}; }
+  };
   downloads = { save: async ({filename, data}) => saveFile(filename, data, "text/csv") };
   window.addEventListener("storage", e=>{ if(e.key===STORE_KEY){ loadStore(); notify(); } });
 
@@ -777,7 +1016,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     try{
       const d = JSON.parse(await f.text());
       if(!d || typeof d.entries!=="object") throw 0;
-      store.entries = d.entries; store.settings = d.settings||null; persist(); notify(); cloudReplaceAll();
+      store.entries = d.entries; store.settings = d.settings||null; if(d.tickets && typeof d.tickets==="object") store.tickets = d.tickets; persist(); notify(); cloudReplaceAll();
       $("restoreMsg").style.color="var(--ok)"; $("restoreMsg").textContent="Restored "+Object.keys(d.entries).length+" entries from "+f.name+".";
     }catch(_){ $("restoreMsg").style.color=""; $("restoreMsg").textContent="That file isn't a tracker backup. Choose a .json file made with Back up."; }
   });
@@ -789,6 +1028,8 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
   function cloudPut(id){ if(cloud && store.entries[id]) cloud.entries.doc(id).set(Cloud.clean(store.entries[id])).catch(cloudFail); }
   function cloudDel(id){ if(cloud) cloud.entries.doc(id).delete().catch(cloudFail); }
   function cloudSettings(){ if(cloud && store.settings) cloud.settings.set(Cloud.clean(store.settings)).catch(cloudFail); }
+  function cloudTPut(id){ if(cloud && store.tickets[id]) cloud.tickets.doc(id).set(Cloud.clean(store.tickets[id])).catch(cloudFail); }
+  function cloudTDel(id){ if(cloud) cloud.tickets.doc(id).delete().catch(cloudFail); }
   async function cloudReplaceAll(){
     if(!cloud) return;
     try{
@@ -796,7 +1037,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
       const b = firebase.firestore().batch(); let n=0;
       snap.docs.forEach(d=>{ if(!store.entries[d.id] && n<450){ b.delete(d.ref); n++; } });
       if(n) await b.commit();
-      await Cloud.putAll(cloud.entries, store.entries); cloudSettings();
+      await Cloud.putAll(cloud.entries, store.entries); await Cloud.putAll(cloud.tickets, store.tickets); cloudSettings();
     }catch(_){ cloudFail(); }
   }
   function updateStatus(){
@@ -807,7 +1048,7 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     if(cloud){ cloud.stop(); cloud=null; }
     if(!u){ updateStatus(); return; }
     const ref = Cloud.userRef();
-    const c = { entries: ref.collection("worktt_entries"), settings: ref.collection("worktt_meta").doc("settings"), stop(){} };
+    const c = { entries: ref.collection("worktt_entries"), tickets: ref.collection("worktt_tickets"), settings: ref.collection("worktt_meta").doc("settings"), stop(){} };
     try{
       if(!Cloud.migrated("worktt")){
         // First sign-in on this device: upload anything here the account doesn't have yet. Nothing is overwritten.
@@ -824,13 +1065,18 @@ td .st{font-family:var(--f-body);font-size:.78rem;font-weight:600}
     const u1 = c.entries.onSnapshot(s=>{ if(s.metadata.fromCache && s.empty && Object.keys(store.entries).length) return; // wait for the server rather than blank the list
       store.entries={}; s.docs.forEach(d=>{ store.entries[d.id]=d.data(); }); saveLocal(); notify(); }, cloudFail);
     const u2 = c.settings.onSnapshot(s=>{ if(s.exists){ store.settings=s.data(); saveLocal(); notify(); } }, cloudFail);
-    c.stop = ()=>{ u1(); u2(); };
+    // Tickets added on this device while signed out are uploaded, never overwritten.
+    try{ const have = new Set((await c.tickets.get()).docs.map(d=>d.id)); const miss={}; Object.keys(store.tickets).forEach(id=>{ if(!have.has(id)) miss[id]=store.tickets[id]; }); await Cloud.putAll(c.tickets, miss); }catch(_){}
+    const u3 = c.tickets.onSnapshot(s=>{ if(s.metadata.fromCache && s.empty && Object.keys(store.tickets).length) return;
+      store.tickets={}; s.docs.forEach(d=>{ store.tickets[d.id]=d.data(); }); saveLocal(); notify(); }, cloudFail);
+    c.stop = ()=>{ u1(); u2(); u3(); };
     cloud = c; updateStatus();
   });
 
   loadStore();
   updateStatus();
   col.onSnapshot(snap=>{ state.entries = snap.docs.map(d=>({ id:d.id, ...d.data() })); render(); });
+  tcol.onSnapshot(snap=>{ const t={}; snap.docs.forEach(d=>{ t[d.id]=d.data(); }); state.tickets=t; render(); });
   settingsRef.onSnapshot(snap=>{
     const d = snap.exists ? snap.data() : null;
     state.closed = d ? (Array.isArray(d.closed) ? d.closed.slice() : null) : null;
